@@ -56,9 +56,12 @@ from tts_engine import (
     DEFAULT_VOICE,
     VOICE_TO_LANGUAGE,
     AVAILABLE_LANGUAGES,
-    TTSAdapter,
 )
 from tts_engine.inference import SAMPLE_RATE
+from tts_engine.adapter_registry import (
+    VoiceSchema,
+    registry as adapter_registry,
+)
 from orchestrator.core import Orchestrator
 from orchestrator.buffer import PlaybackBuffer
 from orchestrator.chunk_ladder import ChunkLadder
@@ -111,20 +114,30 @@ async def pcm_stream_with_optional_save(pcm_iter, save_path: Optional[str] = Non
 
 # Global orchestrator instance for barge-in control
 current_orchestrator: Orchestrator | None = None
+current_adapter_name = "orpheus"
+current_voice = VoiceSchema(voice=DEFAULT_VOICE)
 
 
 async def orchestrated_pcm_stream(
     prompt: str,
-    voice: str,
+    voice: str | VoiceSchema | None,
     *,
+    adapter_name: str | None = None,
     use_batching: bool = False,
     max_batch_chars: int = 1000,
 ):
     """Create an orchestrator-driven PCM stream."""
     global current_orchestrator
-    adapter = TTSAdapter(
+    name = adapter_name or current_adapter_name
+    schema = (
+        current_voice
+        if voice is None
+        else (VoiceSchema(voice=voice) if isinstance(voice, str) else voice)
+    )
+    adapter = adapter_registry.create(
+        name,
         prompt=prompt,
-        voice=voice,
+        voice=schema,
         use_batching=use_batching,
         max_batch_chars=max_batch_chars,
     )
@@ -169,6 +182,11 @@ class APIResponse(BaseModel):
     output_file: str
     generation_time: float
 
+
+class ConfigUpdate(BaseModel):
+    adapter: str | None = None
+    voice: VoiceSchema | None = None
+
 # OpenAI-compatible API endpoint
 @app.post("/v1/audio/speech")
 async def create_speech_api(request: SpeechRequest):
@@ -210,6 +228,31 @@ async def list_voices():
             "voices": AVAILABLE_VOICES
         }
     )
+
+
+@app.get("/adapters")
+async def get_adapters():
+    """Expose capability descriptors for all available adapters."""
+    return adapter_registry.available()
+
+
+@app.post("/config")
+async def update_config(cfg: ConfigUpdate):
+    """Update active adapter or voice schema."""
+    global current_adapter_name, current_voice
+    available = adapter_registry.available()
+    if cfg.adapter:
+        if cfg.adapter not in available:
+            raise HTTPException(status_code=404, detail="Unknown adapter")
+        current_adapter_name = cfg.adapter
+    if cfg.voice:
+        current_voice = cfg.voice
+    if current_orchestrator:
+        current_orchestrator.signal_barge_in()
+    return {
+        "adapter": current_adapter_name,
+        "voice": current_voice.dict(),
+    }
 
 
 # Endpoint to signal barge-in and interrupt current synthesis
