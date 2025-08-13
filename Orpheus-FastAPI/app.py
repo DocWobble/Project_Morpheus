@@ -44,15 +44,24 @@ ensure_env_file_exists()
 # Load environment variables from .env file
 load_dotenv(override=True)
 
-from fastapi import FastAPI, Request, Form, HTTPException, Depends
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import json
 
-from tts_engine import generate_speech_from_api, AVAILABLE_VOICES, DEFAULT_VOICE, VOICE_TO_LANGUAGE, AVAILABLE_LANGUAGES
+from tts_engine import (
+    AVAILABLE_VOICES,
+    DEFAULT_VOICE,
+    VOICE_TO_LANGUAGE,
+    AVAILABLE_LANGUAGES,
+    TTSAdapter,
+)
 from tts_engine.inference import SAMPLE_RATE
+from orchestrator.core import Orchestrator
+from orchestrator.buffer import PlaybackBuffer
+from orchestrator.chunk_ladder import ChunkLadder
 import struct
 import wave
 
@@ -98,6 +107,31 @@ async def pcm_stream_with_optional_save(pcm_iter, save_path: Optional[str] = Non
     finally:
         if wav_file:
             wav_file.close()
+
+
+# Global orchestrator instance for barge-in control
+current_orchestrator: Orchestrator | None = None
+
+
+async def orchestrated_pcm_stream(
+    prompt: str,
+    voice: str,
+    *,
+    use_batching: bool = False,
+    max_batch_chars: int = 1000,
+):
+    """Create an orchestrator-driven PCM stream."""
+    global current_orchestrator
+    adapter = TTSAdapter(
+        prompt=prompt,
+        voice=voice,
+        use_batching=use_batching,
+        max_batch_chars=max_batch_chars,
+    )
+    buffer = PlaybackBuffer(capacity_ms=1000)
+    current_orchestrator = Orchestrator(adapter, buffer, ChunkLadder())
+    async for chunk in current_orchestrator.stream():
+        yield chunk.pcm
 
 # Create FastAPI app
 app = FastAPI(
@@ -153,8 +187,8 @@ async def create_speech_api(request: SpeechRequest):
     if use_batching:
         print(f"Using batched generation for long text ({len(request.input)} characters)")
 
-    # Generate PCM stream and immediately return streaming response
-    pcm_stream = generate_speech_from_api(
+    # Generate PCM stream via orchestrator and immediately return streaming response
+    pcm_stream = orchestrated_pcm_stream(
         prompt=request.input,
         voice=request.voice,
         use_batching=use_batching,
@@ -176,6 +210,27 @@ async def list_voices():
             "voices": AVAILABLE_VOICES
         }
     )
+
+
+# Endpoint to signal barge-in and interrupt current synthesis
+@app.post("/barge-in")
+async def barge_in():
+    if current_orchestrator:
+        current_orchestrator.signal_barge_in()
+    return JSONResponse(content={"status": "ok"})
+
+
+@app.websocket("/ws/barge-in")
+async def barge_in_ws(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            await websocket.receive_text()
+            if current_orchestrator:
+                current_orchestrator.signal_barge_in()
+                await websocket.send_text("ok")
+    except WebSocketDisconnect:
+        pass
 
 # Legacy API endpoint for compatibility
 @app.post("/speak")
@@ -199,7 +254,7 @@ async def speak(request: Request):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = f"outputs/{voice}_{timestamp}.wav"
 
-    pcm_stream = generate_speech_from_api(
+    pcm_stream = orchestrated_pcm_stream(
         prompt=text,
         voice=voice,
         use_batching=use_batching,
@@ -351,7 +406,7 @@ async def generate_from_web(
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = f"outputs/{voice}_{timestamp}.wav"
 
-    pcm_stream = generate_speech_from_api(
+    pcm_stream = orchestrated_pcm_stream(
         prompt=text,
         voice=voice,
         use_batching=use_batching,
