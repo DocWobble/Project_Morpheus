@@ -1,9 +1,12 @@
 import asyncio
 
+import pytest
+
 from orchestrator.adapter import AudioChunk, TTSAdapter
 from orchestrator.buffer import PlaybackBuffer
 from orchestrator.chunk_ladder import ChunkLadder
 from orchestrator.core import Orchestrator
+from orchestrator.ring_buffer import RingBuffer
 
 
 class DummyAdapter(TTSAdapter):
@@ -48,3 +51,13 @@ def test_barge_in_resets_adapter():
     asyncio.run(run())
     assert adapter.reset_called
     assert buffer.depth_ms == 0
+
+
+def test_ring_buffer_tracks_playback():
+    buffer = PlaybackBuffer(capacity_ms=1000)
+    ring = RingBuffer(capacity=320, sample_rate=16000, playback=buffer)
+    written = ring.write(b"\x00" * 320)  # 10ms at 16 kHz
+    assert written == 320
+    assert buffer.depth_ms == pytest.approx(10.0)
+    ring.read(160)  # consume 5ms
+    assert buffer.depth_ms == pytest.approx(5.0)

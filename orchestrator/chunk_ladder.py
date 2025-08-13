@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
 DEFAULT_LADDER: List[int] = [8, 12, 16, 24, 32, 48, 64]
 
@@ -33,3 +33,16 @@ class ChunkLadder:
 
     def reset(self) -> None:
         self.index = 0
+
+    def adapt(self, depth_ms: float, band: Tuple[float, float]) -> None:
+        """Adjust ladder position based on ``depth_ms``.
+
+        ``band`` defines the low and high water marks of the playback
+        buffer.  If the buffer is shallow we step up to request larger
+        chunks; if it is too deep we step down to ease backpressure.
+        """
+        low, high = band
+        if depth_ms < low:
+            self.step_up()
+        elif depth_ms > high:
+            self.step_down()
