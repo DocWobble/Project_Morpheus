@@ -1,257 +1,138 @@
----
 
-# PROJECT MORPHEUS → Real-Time, Backend-Agnostic TTS
 
-## Mission
+# End-State Phenotype (what it should *feel* like)
 
-Refactor the entire repo (which includes the main Orpheus TTS pretrained model as well as its primary local API client) into a **backend-agnostic, real-time TTS server** that can drive **any** TTS inference engine/API (SNAC/Orpheus GGUF via llama.cpp, Piper, XTTS, Coqui, ElevenLabs-style, VITS, local WebRTC DSP pipelines, etc.), with **dynamic generation rate** control and **true real-time** streaming. Maintain the current Web UI + OpenAI-compatible surface, but make the audio pipeline modular, low-latency, and resilient. At present, the "FastAPI" is essentially bloat, as it is unable to actually perform inference (requiring a separate llama/transformers engine) except when running as a Docker container, severely limiting its incorporation into workflows. We want to change that.
-
-## Constraints (hard)
-
-* Local-first, no cloud dependency.
-* Python 3.10–3.11 only (no 3.12).
-* Support CUDA 12.4+ (driver can be newer) and CPU mode.
-* Keep `/v1/audio/speech` (OpenAI-compatible) and legacy `/speak`.
-* Preserve SNAC path (Orpheus via llama.cpp `/v1/completions`), but **abstract it** behind a clean adapter interface.
-* Backends must be loadable/unloadable at runtime via config/API without server restart.
-* Zero breaking changes for basic cURL examples.
-
-## Performance targets (on RTX 5070 Ti 16GB)
-
-* **TTFT** (time-to-first-audio): ≤ 200 ms for short inputs (<150 chars).
-* **Sustained RT factor**: ≥ 1.5× for continuous text (≥ 1k chars) with stitching.
-* **Decoder cadence**: adaptive; target **32-token** SNAC windows when stable; drop to **8–16** on barge-in/low-latency mode.
-* **Jitter tolerance**: ≤ 50 ms inter-chunk drift on streaming endpoint.
-* Concurrency: ≥ 4 independent streams with predictable QoS.
-
-## High-level architecture
-
-Introduce a **Backend Adapter Layer** + **Realtime Orchestrator** + **I/O Drivers**:
-
-```
-app.py (FastAPI)
-  └─ services/
-     ├─ orchestrator.py          # realtime scheduler, rate control, backpressure, barge-in
-     ├─ adapters/                # pluggable backends (see adapter spec below)
-     │   ├─ snac_llamacpp.py
-     │   ├─ piper.py
-     │   ├─ xtts.py
-     │   ├─ coqui.py
-     │   └─ openai_tts.py
-     ├─ audio/
-     │   ├─ chunker.py           # text chunking, prosody hints, punctuation-aware
-     │   ├─ stitcher.py          # overlap-add, 50 ms crossfade, drift correction
-     │   ├─ resample.py          # enforce 24 kHz mono pipeline
-     │   └─ snac_codec.py        # SNAC encode/decode (when needed)
-     ├─ config.py                # env/.env + hot-reloadable settings
-     └─ metrics.py               # prometheus-style counters/histograms
-static/, templates/              # keep UI, add live perf panel
-```
-
-### Adapter interface (strict)
-
-Create `services/adapters/base.py`:
-
-```python
-from typing import AsyncIterator, Optional, Dict, Any, List
-from dataclasses import dataclass
-
-@dataclass
-class TTSInput:
-    text: str
-    voice: str
-    language: Optional[str] = None
-    speed: float = 1.0
-    emotion_tags: Optional[List[str]] = None
-    # optional low-level knobs (temperature, top_p, penalty)
-    sampling: Optional[Dict[str, Any]] = None
-    # realtime hints
-    target_chunk: int = 32       # desired token/audio units per callback
-    low_latency: bool = False    # prefer early first audio over throughput
-
-@dataclass
-class AudioChunk:
-    pcm: bytes                   # 16-bit PCM mono, 24 kHz
-    duration_ms: int             # wall-clock audio duration
-    is_final: bool = False       # stream end
-
-class TTSAdapter:
-    name: str
-    sample_rate: int = 24000
-
-    async def synth_stream(self, req: TTSInput) -> AsyncIterator[AudioChunk]:
-        """Yield AudioChunk as soon as available. Must never block on full synthesis."""
-        raise NotImplementedError()
-
-    async def warmup(self) -> None:
-        """Load weights/session, do a tiny dummy run to prime kernels/caches."""
-
-    async def health(self) -> Dict[str, Any]:
-        """Return {ready: bool, vram_mb:int, loader:str, backend:str}."""
-```
-
-Implement adapters:
-
-* **snac\_llamacpp.py**: talks to llama.cpp `/v1/completions`, converts SNAC tokens → PCM via SNAC decoder; honors `target_chunk` and `low_latency`.
-* **piper.py**: wraps Piper CLI or Python lib; chunking at sentence/phrase; stream partials if supported, else synth to memory and slice.
-* **xtts.py / coqui.py / openai\_tts.py**: wrap respective APIs; normalise to PCM 24 kHz when streaming yields frames.
-
-### Orchestrator (dynamic rate controller)
-
-`services/orchestrator.py` implements:
-
-* **Rate module**: adaptive chunk sizing (8/16/24/32 tokens or \~240/480/720/960 samples) based on:
-
-  * observed **decode throughput** (tokens/s or ms/chunk),
-  * **playback buffer depth** (target 200–500 ms),
-  * **network/client read rate**,
-  * **barge-in** (user voice/VAD signal optional; for now, treat a control flag).
-* **Backpressure**: if client is slow, shrink `target_chunk` and suspend requests to backend.
-* **Prefetch**: keep **1–2 chunks** ahead of the playback buffer; never synthesize huge futures.
-* **Switch policy**: if adapter stalls, retry smaller chunk; if still stalling, failover to a secondary backend (configured) with a “degraded” flag.
-* **Barge-in**: expose hook to immediately **pause** synthesis mid-chunk, truncate buffer, and flush.
-
-State machine:
-
-```
-INIT → WARMUP → FILL (grow buffer to 300ms) → STEADY (keep 250–400ms)
-           ↑                ↓
-       DROP/RECOVER  ←  UNDERFLOW
-```
-
-### API surface (no breaking changes)
-
-* `/v1/audio/speech` (OpenAI-compatible): takes `model`, `input`, `voice`, `speed`, returns **HTTP chunked** WAV stream or full WAV when `stream=false`.
-* `/speak`: legacy wrapper.
-* New:
-
-  * `/adapters` → list active adapters + health.
-  * `/config` (GET/POST) → hot-reload backend selection, default voice, chunk targets, thresholds.
-  * `/metrics` → Prometheus text format.
-
-### Config (hot-reloadable)
-
-`.env` and runtime overrides:
-
-```
-TTS_BACKEND=snac_llamacpp        # default
-BACKENDS=snac_llamacpp,piper,xtts
-SNAC_URL=http://127.0.0.1:5006/v1/completions
-SNAC_TARGET_CHUNK=32
-SNAC_FIRST_CHUNK=12              # for TTFT
-PLAYBACK_BUFFER_MS=300
-BUFFER_MIN_MS=200
-BUFFER_MAX_MS=500
-PARALLEL_STREAMS=4
-LLAMACPP_BATCH_SIZE=1024
-LLAMACPP_UBATCH=512
-```
-
-## Concrete refactor plan (commit sequence)
-
-1. **Extract adapters**: move current SNAC/llama.cpp logic out of `inference.py` into `services/adapters/snac_llamacpp.py` implementing the base interface.
-2. **Introduce orchestrator**: new `services/orchestrator.py` that accepts a `TTSAdapter` and a `TTSInput`, performs adaptive scheduling, yields `AudioChunk`.
-3. **Rewrite handlers** in `app.py`: `/v1/audio/speech` consumes **stream from orchestrator**, writes WAV headers once, then interleaves PCM chunks (chunked transfer).
-4. **Audio stitcher**: move crossfade/overlap-add into `services/audio/stitcher.py`; expose `stitch(chunks, crossfade_ms=50)`.
-5. **Pluggable registry**: `services/adapters/__init__.py` with a registry dict `{name: AdapterClass}`; read `TTS_BACKEND`, enable runtime switch via `/config`.
-6. **Metrics/logging**: add `services/metrics.py` (Prometheus); instrument:
-
-   * `tts_ttft_ms`, `tts_chunk_ms`, `tts_stream_rtf`, `tts_underflow_count`, `tts_backend_failover_total`.
-7. **Web UI**: add a live perf panel (WebSocket) showing buffer depth, chunk size, RTF, current backend.
-8. **Tests**: implement unit & integration tests (see Acceptance below).
-9. **Docs**: update README with backend matrix and example configs.
-
-## Smarter dynamic generation rate (algorithm)
-
-* Start with **FIRST\_CHUNK\_TOKENS** = 8/12/16 based on latency profile config.
-* Maintain target buffer depth **B** (ms). While **buffer < B**, request chunk with **size = min(32, size\*1.5)**.
-* If **underflow** (buffer < MIN\_B), shrink to **size = max(8, size/2)** and set `low_latency=True`.
-* If **overflow** (buffer > MAX\_B), pause requests until buffer returns to B, then reduce size slightly.
-* Apply **EWMA** on observed chunk time to stabilize oscillations.
-* Hard limits: 8 ≤ size ≤ 64 (tokens) for SNAC; for waveform backends, use \~100–500 ms audio frames.
-* Allow **manual override** via `/config` to lock chunk size.
-
-## Adapter specifics (minimum viable)
-
-### snac\_llamacpp.py
-
-* POST to `/v1/completions` with `stream:true`, `n_predict`, `cache_prompt:true`.
-* Accumulate tokens; when reaching `target_chunk`, decode via SNAC to PCM (24k).
-* Yield `AudioChunk(pcm=…, duration_ms=… )` ASAP.
-* Respect `low_latency`: smaller first chunk; no coalescing; flush early.
-* Handle EOS token → `is_final=True`.
-
-### piper.py
-
-* If Piper supports streaming, forward frames immediately; else synthesize to memory then slice into 100–200 ms frames and yield.
-
-### xtts.py / coqui.py / openai\_tts.py
-
-* Use vendor streaming APIs where available; normalize to PCM 24 kHz mono; emit incremental `AudioChunk`.
-
-## Acceptance (must pass)
-
-1. **API compatibility**: existing cURL examples work; `/v1/audio/speech` returns playable WAV bytes while streaming.
-2. **Hot swap**: `/config` POST `{ "tts_backend":"piper" }` switches backend in-flight (new requests use it) without server restart.
-3. **Realtime**: For 1k-char English text on RTX 5070 Ti, measured `tts_stream_rtf ≥ 1.5` after first 1s warmup; **TTFT ≤ 200 ms** for 120-char input at default settings.
-4. **Stability**: No buffer underflow audible gaps during 5-minute narration; `tts_underflow_count==0` under default settings.
-5. **Barge-in**: If `low_latency` flag is set on the request, first audio arrives ≤ 150 ms (smaller chunk), then rate ramps to steady 24–32 tokens per chunk.
-6. **Unit tests**:
-
-   * chunker splits by punctuation and preserves tags;
-   * stitcher overlap-add introduces < −45 dB crossfade seam;
-   * orchestrator’s EWMA converges and maintains buffer in \[200,500] ms with synthetic backends.
-
-## Coding guidelines
-
-* Async throughout (`async def`, `await`); no blocking disk I/O in hot path.
-* Use `httpx.AsyncClient` with keep-alive for backend HTTP calls.
-* WAV streaming: write RIFF header once, then stream PCM; if length unknown, use data chunk size 0xFFFFFFFF with HTTP chunked transfer (supported by most clients).
-* Centralize config (`services/config.py`) with pydantic; support `.env` hot-reload (watcher).
-* Structured logs (JSON) with timestamps; include `request_id`, `backend`, `chunk_size`, `buffer_ms`.
-
-## Concrete TODOs for Codex (create/modify these)
-
-* [ ] `services/adapters/base.py` (interface + dataclasses)
-* [ ] `services/adapters/snac_llamacpp.py` (full)
-* [ ] `services/adapters/piper.py` (full)
-* [ ] `services/adapters/xtts.py` (skeleton with TODOs; document env vars)
-* [ ] `services/adapters/openai_tts.py` (simple)
-* [ ] `services/orchestrator.py` (scheduler + EWMA + backpressure)
-* [ ] `services/audio/chunker.py` (punctuation/emoji/emotion-tag aware)
-* [ ] `services/audio/stitcher.py` (OLA with 50 ms crossfade; drift guard)
-* [ ] `services/audio/snac_codec.py` (wrap existing SNAC usage cleanly)
-* [ ] `services/config.py` (pydantic settings + hot reload)
-* [ ] `services/metrics.py` (Prometheus)
-* [ ] `app.py` (wire endpoints to orchestrator; add `/adapters`, `/config`, `/metrics`)
-* [ ] `tests/` with unit + integration (use a **FakeAdapter** that yields synthetic PCM)
-
-## Example: wiring `/v1/audio/speech`
-
-```python
-@app.post("/v1/audio/speech")
-async def audio_speech(req: SpeechRequest):
-    adapter = registry.get(current_settings.tts_backend)
-    await adapter.warmup()
-    tts_input = TTSInput(
-        text=req.input, voice=req.voice or current_settings.default_voice,
-        speed=req.speed or 1.0, emotion_tags=parse_tags(req.input),
-        sampling={"temperature": req.temperature, "top_p": req.top_p},
-        target_chunk=current_settings.snac_target_chunk,
-        low_latency=req.low_latency or False,
-    )
-    stream = orchestrator.stream(adapter, tts_input)
-    return StreamingResponse(wav_streamer(stream, sample_rate=adapter.sample_rate),
-                             media_type="audio/wav")
-```
-
-## Bench script (dev utility)
-
-Add `scripts/bench.py` to run fixed prompts against all adapters, print TTFT, RTF, avg chunk size, underflows.
+* **Live voice, not files.** You type/speak → it **starts speaking while it’s thinking**, and you can **barge-in** at any time; playback pauses instantly and resumes coherently.
+* **Backend-agnostic voice.** You can switch TTS engines on the fly (SNAC/Orpheus, ouleTTS, XTTS, Piper, Eleven-ish, etc.). The *voice persona* persists across the swap; at worst the timbre shifts, never the timing.
+* **Duplex loop.** Conversational core and coding core can talk over the voice without blocking each other; speech is just another stream on the bus.
+* **Graceful degradation.** If GPU is busy or a backend stalls, it **keeps talking** with simpler synthesis (or smaller chunks) rather than freezing. No clicks, no gaps—just a subtle quality trade.
+* **Truthful surface.** The UI shows a **time-aligned timeline** of: input chunks, token windows, audio frames, barge-ins, backend swaps, and tool actions. What you hear matches what the timeline shows.
 
 ---
 
-**Deliverables:** a PR touching files above, passing acceptance tests, with `README.md` updated (backend matrix, config, perf tips). Keep changes cohesive, no dead code, and leave the original Orpheus path working through the SNAC adapter.
+# Behavioral Invariants (morphology, not metrics)
 
-If anything is ambiguous, decide in favor of **lower latency**, **clean interfaces**, and **hot-swappable backends**.
+Think of these as the “duckbill” of the system—non-negotiable shapes the stack must exhibit regardless of backend.
+
+1. **Stream-first, file-never (hot path).** No disk writes in the synthesis path; audio is produced as a **monotonic stream of PCM frames** with a single WAV header (or WS frames).
+2. **Rolling context, bounded working set.** Inference uses a **sliding window** of the minimal past it needs; old phoneme/audio state is spillable to CPU/RAM. VRAM never scales with total utterance length.
+3. **Backpressure aware.** Producers honor a **playback buffer** contract: keep it within a soft band (buffer is an integrator; controller nudges chunk size and pacing to hold it). No underflows; no unbounded growth.
+4. **Seamless interruptions.** A **barge-in signal** can arrive at any time; the orchestrator must cut synthesis at the next frame boundary, **flush** the buffer, and re-seed context without artifacts.
+5. **Late binding of voice.** “Voice” is a **schema**, not an index: `{timbre, prosody, accent, emotion-priors, pace}`. Backends project that schema into their own knobs; the request stays the same.
+6. **Idempotent retries.** If a chunk decode fails, replaying the same token/window yields **byte-identical** PCM (determinism under fixed seed) so we can resume mid-stream.
+7. **Hot-swappable adapters.** Adapter swap is a **state machine transition**, not a restart: capture current envelope (RMS/pitch/speed), crossfade **≤ one frame** overlap, and continue.
+8. **Observability ≥ UX.** Every emitted frame has provenance: `{adapter, chunk_id, window_tokens, render_ms}`; the UI can **replay** any session deterministically.
+
+---
+
+# Synchrony Contracts (how layers coordinate)
+
+* **Ingress → Orchestrator:** `{text or tokens, voice schema, mode:{low_latency|steady}, hints:{target_chunk, cadence}}`
+* **Orchestrator → Adapter:** **pull** contract: “give me next AudioChunk when ready”; adapter may push early partials.
+* **Adapter → Orchestrator:** `AudioChunk{pcm, duration_ms, markers?, eos?}`; **never blocks** while waiting for full utterance.
+* **Orchestrator → Stitcher:** `[(chunk_i, overlap_ms)]` → returns a continuous stream with overlap-add and **drift guard** (timebase authority is playback).
+* **Control plane:** `/config` can change adapter, voice schema, or mode mid-request; changes take effect on **next chunk boundary**.
+
+---
+
+# Adaptive Rate Controller (shape, not numbers)
+
+* Treat the playback buffer as the **controlled variable**; keep it in a **comfort band** (e.g., “one breath” deep) without hardcoding ms.
+* Start with a **small first window** (low-latency morphology), then **expand** chunk size toward a stable maximum the backend can sustain.
+* If buffer shrinks, **halve** the next request size and set `low_latency=True`.
+* If buffer grows beyond comfort, **skip one request** (let playback catch up) and step chunk size down one notch.
+* Use **EWMA** on observed chunk render time; don’t chase noise.
+* Chunk size ladder is discrete: `{8, 12, 16, 24, 32, 48, 64}` tokens or equivalent ms for non-token engines.
+
+---
+
+# Adapter Capability Descriptor (self-description, not hardcoding)
+
+Each adapter exposes:
+
+```json
+{
+  "name": "snac_llamacpp",
+  "streaming": true,
+  "unit": "tokens|ms",
+  "granularity": [8,12,16,24,32,48,64],
+  "voices": ["..."] or "dynamic",
+  "supports_barge_in": true,
+  "supports_seed": true,
+  "stateful_context": "rolling|minimal|none"
+}
+```
+
+The orchestrator **negotiates** target chunking and barge-in semantics from this, so new engines slot in without changing control logic.
+
+---
+
+# Scenario Probes (open-ended tests that force emergence)
+
+Instead of brittle thresholds, give the agent **scenes** it must pass. Each scene asserts **shapes** in the timeline/PCM, not single numbers.
+
+1. **Breathing Room.** Short utterances; confirm *first-audio begins before silence fully decays* and no file appears on disk.
+2. **Long Read.** 5-minute narration; confirm **no underflows**, chunk sizes converge, and adapter returns stable cadence after a minute.
+3. **Mid-Stream Swap.** Switch adapters while speaking; confirm single-frame crossfade, same words continue, voice schema preserved.
+4. **Barge-In.** Interrupt repeatedly at random points; confirm hard stop at frame boundary, buffer flush, and fast re-seed.
+5. **Throttle & Recover.** Inject GPU/HTTP slowdown; controller shrinks chunks, then expands when pressure releases—no audible hiccups.
+6. **Persona Script.** Apply a JSON voice persona (à la ouleTTS) to three backends; confirm perceptual similarity in **prosody envelope** (not identical timbre).
+7. **Cold Start.** First request after boot; confirm warm-up path compiles kernels and preallocates buffers; later requests skip warm-up.
+
+Each scene produces a **timeline artifact** (JSON) and a **WAV**; a human can audition, and the CI can check coarse properties (continuous RMS, bounded zero-runs, monotonic timestamps).
+
+---
+
+# Deliverables for the coding agents (what to build)
+
+1. **Orchestrator (new)**
+
+   * Pull-based streaming core with adaptive chunk ladder, barge-in, and backpressure.
+   * Zero-copy PCM ring buffer; playback is the clock.
+
+2. **Adapter Registry + Capabilities**
+
+   * `base.TTSAdapter` + `describe()`; adapters for `snac_llamacpp`, `piper`, `xtts`, `ouleTTS`, `openai_speech`.
+   * Voice schema mapper per adapter (name → backend params or JSON persona).
+
+3. **Unified Streaming Surface**
+
+   * HTTP chunked WAV **and** WebSocket PCM frames; one RIFF header, then frames; no `FileResponse` ever in hot path.
+
+4. **Stitcher**
+
+   * Overlap-add with drift guard; optional noise-floor dither; emits **markers** (word/phoneme boundaries if provided).
+
+5. **Timeline & Replay**
+
+   * Append-only JSON log of chunks/events; deterministic **replay** runner that regenerates audio from the log.
+
+6. **UI Synchrony Panel**
+
+   * Live strip chart: buffer depth, chunk size, adapter, events; click to audition from any marker.
+
+7. **Scenario Harness**
+
+   * `scenes/` library implementing the probes above; single command runs all scenes across adapters, saves artifacts.
+
+8. **Config & Hot-Swap**
+
+   * `/config` endpoint that flips adapter/voice/mode at next chunk boundary; `/adapters` for capability introspection.
+
+9. **Safety & Isolation**
+
+   * No network egress except declared backends; adapters run in their own process if they link heavy runtimes (optional).
+
+10. **Docs as Morphology**
+
+* README section “Phenotype”: diagrams of streams, buffers, and state transitions; troubleshooting by **shape** (e.g., “sawtooth buffer → chunk too big or backend jitter”).
+
+---
+
+# How this prevents gremlins
+
+* You’re constraining **interaction geometry**, not one-off numbers. Any backend that can maintain those shapes will behave correctly.
+* Adaptive control + scenario probes **invite emergence** (the controller finds the stable regime on your hardware) while keeping UX invariants intact.
+* Replayable timelines make bugs diagnosable: when something sounds wrong, you inspect the **shape** of the stream and reproduce it exactly.
+
 
