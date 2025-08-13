@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Fire-and-forget test runner
-set -e
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-pytest -q
+
+set -euo pipefail
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+python -m pytest -q "$@"
+
