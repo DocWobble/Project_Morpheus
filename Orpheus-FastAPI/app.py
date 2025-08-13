@@ -45,13 +45,39 @@ ensure_env_file_exists()
 load_dotenv(override=True)
 
 from fastapi import FastAPI, Request, Form, HTTPException, Depends
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import json
 
 from tts_engine import generate_speech_from_api, AVAILABLE_VOICES, DEFAULT_VOICE, VOICE_TO_LANGUAGE, AVAILABLE_LANGUAGES
+from tts_engine.inference import SAMPLE_RATE
+import struct
+
+
+async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
+    """Wrap a PCM iterator with a WAV header for streaming."""
+    byte_rate = sample_rate * 2
+    header = struct.pack(
+        '<4sI4s4sIHHIIHH4sI',
+        b'RIFF',
+        0xFFFFFFFF,
+        b'WAVE',
+        b'fmt ',
+        16,
+        1,
+        1,
+        sample_rate,
+        byte_rate,
+        2,
+        16,
+        b'data',
+        0xFFFFFFFF,
+    )
+    yield header
+    async for chunk in pcm_iter:
+        yield chunk
 
 # Create FastAPI app
 app = FastAPI(
@@ -102,32 +128,21 @@ async def create_speech_api(request: SpeechRequest):
     if not request.input:
         raise HTTPException(status_code=400, detail="Missing input text")
     
-    # Generate unique filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"outputs/{request.voice}_{timestamp}.wav"
-    
     # Check if we should use batched generation
     use_batching = len(request.input) > 1000
     if use_batching:
         print(f"Using batched generation for long text ({len(request.input)} characters)")
-    
-    # Generate speech with automatic batching for long texts
-    start = time.time()
-    generate_speech_from_api(
+
+    # Generate PCM stream and immediately return streaming response
+    pcm_stream = generate_speech_from_api(
         prompt=request.input,
         voice=request.voice,
-        output_file=output_path,
         use_batching=use_batching,
-        max_batch_chars=1000  # Process in ~1000 character chunks (roughly 1 paragraph)
+        max_batch_chars=1000,
     )
-    end = time.time()
-    generation_time = round(end - start, 2)
-    
-    # Return audio file
-    return FileResponse(
-        path=output_path,
+    return StreamingResponse(
+        wav_streamer(pcm_stream, sample_rate=SAMPLE_RATE),
         media_type="audio/wav",
-        filename=f"{request.voice}_{timestamp}.wav"
     )
 
 @app.get("/v1/audio/voices")
