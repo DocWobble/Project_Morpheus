@@ -11,7 +11,7 @@ import threading
 import queue
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Any, Optional, Generator, Union, Tuple, AsyncGenerator
+from typing import List, Dict, Any, Optional, Union, Tuple, AsyncGenerator
 from dotenv import load_dotenv
 
 # Helper to detect if running in Uvicorn's reloader
@@ -369,7 +369,7 @@ def convert_to_audio(multiframe: List[int], count: int) -> Optional[bytes]:
         
     return result
 
-async def tokens_decoder(token_gen) -> Generator[bytes, None, None]:
+async def tokens_decoder(token_gen) -> AsyncGenerator[bytes, None]:
     """Simplified token decoder with early first-chunk processing for lower latency."""
     buffer = []
     count = 0
