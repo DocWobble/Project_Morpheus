@@ -2,8 +2,6 @@ from snac import SNAC
 import numpy as np
 import torch
 import asyncio
-import threading
-import queue
 import time
 import os
 import sys
@@ -289,42 +287,19 @@ async def tokens_decoder(token_gen):
         if audio_samples is not None:
             yield audio_samples
 # ------------------ Synchronous Tokens Decoder Wrapper ------------------ #
-def tokens_decoder_sync(syn_token_gen):
-    """Optimized synchronous decoder with larger queue and parallel processing"""
-    # Use a larger queue for RTX 4090 to maximize GPU utilization
+async def tokens_decoder_sync(syn_token_gen):
+    """Optimized asynchronous decoder with larger queue and parallel processing"""
     max_queue_size = 32 if snac_device == "cuda" else 8
-    audio_queue = queue.Queue(maxsize=max_queue_size)
-    
-    # Collect tokens in batches for higher throughput
-    batch_size = 16 if snac_device == "cuda" else 4
-    
-    # Convert the synchronous token generator into an async generator with batching
-    async def async_token_gen():
-        token_batch = []
-        for token in syn_token_gen:
-            token_batch.append(token)
-            # Process in batches for efficiency
-            if len(token_batch) >= batch_size:
-                for t in token_batch:
-                    yield t
-                token_batch = []
-        # Process any remaining tokens
-        for t in token_batch:
-            yield t
+    audio_queue = asyncio.Queue(maxsize=max_queue_size)
 
     async def async_producer():
-        # Start timer for performance logging
         start_time = time.time()
         chunk_count = 0
-        
         try:
-            # Process audio chunks from the token decoder
-            async for audio_chunk in tokens_decoder(async_token_gen()):
-                if audio_chunk:  # Validate audio chunk before adding to queue
-                    audio_queue.put(audio_chunk)
+            async for audio_chunk in tokens_decoder(syn_token_gen):
+                if audio_chunk:
+                    await audio_queue.put(audio_chunk)
                     chunk_count += 1
-                    
-                    # Log performance stats periodically
                     if chunk_count % 10 == 0:
                         elapsed = time.time() - start_time
                         print(f"Generated {chunk_count} chunks in {elapsed:.2f}s ({chunk_count/elapsed:.2f} chunks/sec)")
@@ -332,37 +307,26 @@ def tokens_decoder_sync(syn_token_gen):
             print(f"Error in audio producer: {e}")
             import traceback
             traceback.print_exc()
-        finally:    
-            # Signal completion
-            print("Audio producer completed - finalizing all chunks")
-            audio_queue.put(None)  # Sentinel
+        finally:
+            await audio_queue.put(None)
 
-    def run_async():
-        asyncio.run(async_producer())
+    producer_task = asyncio.create_task(async_producer())
 
-    # Use a higher priority thread for RTX 4090 to ensure it stays fed with work
-    thread = threading.Thread(target=run_async)
-    thread.daemon = True  # Allow the thread to be terminated when the main thread exits
-    thread.start()
-
-    # Use larger buffer for final audio assembly
     buffer_size = 5
     audio_buffer = []
-    
+
     while True:
-        audio = audio_queue.get()
+        audio = await audio_queue.get()
         if audio is None:
             break
-        
+
         audio_buffer.append(audio)
-        # Yield buffered audio chunks for smoother playback
         if len(audio_buffer) >= buffer_size:
             for chunk in audio_buffer:
                 yield chunk
             audio_buffer = []
-    
-    # Yield any remaining audio in the buffer
+
     for chunk in audio_buffer:
         yield chunk
 
-    thread.join()
+    await producer_task

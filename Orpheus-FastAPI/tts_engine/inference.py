@@ -1,17 +1,14 @@
 import os
 import sys
-import requests
+import httpx
 import json
 import time
 import wave
 import numpy as np
 import sounddevice as sd
 import argparse
-import threading
-import queue
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Any, Optional, Generator, Union, Tuple
+from typing import List, Dict, Any, Optional, AsyncGenerator, Union, Tuple
 from dotenv import load_dotenv
 
 # Helper to detect if running in Uvicorn's reloader
@@ -241,121 +238,111 @@ def format_prompt(prompt: str, voice: str = DEFAULT_VOICE) -> str:
     
     return f"{special_start}{formatted_prompt}{special_end}"
 
-def generate_tokens_from_api(prompt: str, voice: str = DEFAULT_VOICE, temperature: float = TEMPERATURE, 
-                           top_p: float = TOP_P, max_tokens: int = MAX_TOKENS, 
-                           repetition_penalty: float = REPETITION_PENALTY) -> Generator[str, None, None]:
+async def generate_tokens_from_api(
+    prompt: str,
+    voice: str = DEFAULT_VOICE,
+    temperature: float = TEMPERATURE,
+    top_p: float = TOP_P,
+    max_tokens: int = MAX_TOKENS,
+    repetition_penalty: float = REPETITION_PENALTY,
+) -> AsyncGenerator[str, None]:
     """Generate tokens from text using OpenAI-compatible API with optimized streaming and retry logic."""
     start_time = time.time()
     formatted_prompt = format_prompt(prompt, voice)
     print(f"Generating speech for: {formatted_prompt}")
-    
-    # Optimize the token generation for GPUs
+
     if HIGH_END_GPU:
-        # Use more aggressive parameters for faster generation on high-end GPUs
         print("Using optimized parameters for high-end GPU")
     elif torch.cuda.is_available():
         print("Using optimized parameters for GPU acceleration")
-    
-    # Create the request payload (model field may not be required by some endpoints but included for compatibility)
+
     payload = {
         "prompt": formatted_prompt,
         "max_tokens": max_tokens,
         "temperature": temperature,
         "top_p": top_p,
         "repeat_penalty": repetition_penalty,
-        "stream": True  # Always stream for better performance
+        "stream": True,
     }
-    
-    # Add model field - this is ignored by many local inference servers for /v1/completions
-    # but included for compatibility with OpenAI API and some servers that may use it
+
     model_name = os.environ.get("ORPHEUS_MODEL_NAME", "Orpheus-3b-FT-Q8_0.gguf")
     payload["model"] = model_name
-    
-    # Session for connection pooling and retry logic
-    session = requests.Session()
-    
+
     retry_count = 0
     max_retries = 3
-    
-    while retry_count < max_retries:
-        try:
-            # Make the API request with streaming and timeout
-            response = session.post(
-                API_URL, 
-                headers=HEADERS, 
-                json=payload, 
-                stream=True,
-                timeout=REQUEST_TIMEOUT
-            )
-            
-            if response.status_code != 200:
-                print(f"Error: API request failed with status code {response.status_code}")
-                print(f"Error details: {response.text}")
-                # Retry on server errors (5xx) but not on client errors (4xx)
-                if response.status_code >= 500:
-                    retry_count += 1
-                    wait_time = 2 ** retry_count  # Exponential backoff
-                    print(f"Retrying in {wait_time} seconds...")
-                    time.sleep(wait_time)
-                    continue
-                return
-            
-            # Process the streamed response with better buffering
-            buffer = ""
-            token_counter = 0
-            
-            # Iterate through the response to get tokens
-            for line in response.iter_lines():
-                if line:
-                    line_str = line.decode('utf-8')
-                    if line_str.startswith('data: '):
-                        data_str = line_str[6:]  # Remove the 'data: ' prefix
-                        
-                        if data_str.strip() == '[DONE]':
-                            break
-                            
-                        try:
-                            data = json.loads(data_str)
-                            if 'choices' in data and len(data['choices']) > 0:
-                                token_chunk = data['choices'][0].get('text', '')
-                                for token_text in token_chunk.split('>'):
-                                    token_text = f'{token_text}>'
-                                    token_counter += 1
-                                    perf_monitor.add_tokens()
 
-                                    if token_text:
-                                        yield token_text
-                        except json.JSONDecodeError as e:
-                            print(f"Error decoding JSON: {e}")
+    async with httpx.AsyncClient() as client:
+        while retry_count < max_retries:
+            try:
+                async with client.stream(
+                    "POST",
+                    API_URL,
+                    headers=HEADERS,
+                    json=payload,
+                    timeout=REQUEST_TIMEOUT,
+                ) as response:
+                    if response.status_code != 200:
+                        print(f"Error: API request failed with status code {response.status_code}")
+                        print(f"Error details: {await response.aread()}")
+                        if response.status_code >= 500:
+                            retry_count += 1
+                            wait_time = 2 ** retry_count
+                            print(f"Retrying in {wait_time} seconds...")
+                            await asyncio.sleep(wait_time)
                             continue
-            
-            # Generation completed successfully
-            generation_time = time.time() - start_time
-            tokens_per_second = token_counter / generation_time if generation_time > 0 else 0
-            print(f"Token generation complete: {token_counter} tokens in {generation_time:.2f}s ({tokens_per_second:.1f} tokens/sec)")
-            return
-            
-        except requests.exceptions.Timeout:
-            print(f"Request timed out after {REQUEST_TIMEOUT} seconds")
-            retry_count += 1
-            if retry_count < max_retries:
-                wait_time = 2 ** retry_count
-                print(f"Retrying in {wait_time} seconds... (attempt {retry_count+1}/{max_retries})")
-                time.sleep(wait_time)
-            else:
-                print("Max retries reached. Token generation failed.")
-                return
-                
-        except requests.exceptions.ConnectionError:
-            print(f"Connection error to API at {API_URL}")
-            retry_count += 1
-            if retry_count < max_retries:
-                wait_time = 2 ** retry_count
-                print(f"Retrying in {wait_time} seconds... (attempt {retry_count+1}/{max_retries})")
-                time.sleep(wait_time)
-            else:
-                print("Max retries reached. Token generation failed.")
-                return
+                        return
+
+                    token_counter = 0
+                    async for line in response.aiter_lines():
+                        if line and line.startswith("data: "):
+                            data_str = line[6:]
+                            if data_str.strip() == "[DONE]":
+                                break
+                            try:
+                                data = json.loads(data_str)
+                                if "choices" in data and data["choices"]:
+                                    token_chunk = data["choices"][0].get("text", "")
+                                    for token_text in token_chunk.split(">"):
+                                        token_text = f"{token_text}>"
+                                        token_counter += 1
+                                        perf_monitor.add_tokens()
+                                        if token_text:
+                                            yield token_text
+                            except json.JSONDecodeError as e:
+                                print(f"Error decoding JSON: {e}")
+                                continue
+
+                    generation_time = time.time() - start_time
+                    tokens_per_second = token_counter / generation_time if generation_time > 0 else 0
+                    print(
+                        f"Token generation complete: {token_counter} tokens in {generation_time:.2f}s ({tokens_per_second:.1f} tokens/sec)"
+                    )
+                    return
+
+            except httpx.TimeoutException:
+                print(f"Request timed out after {REQUEST_TIMEOUT} seconds")
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = 2 ** retry_count
+                    print(
+                        f"Retrying in {wait_time} seconds... (attempt {retry_count+1}/{max_retries})"
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    print("Max retries reached. Token generation failed.")
+                    return
+            except httpx.RequestError:
+                print(f"Connection error to API at {API_URL}")
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = 2 ** retry_count
+                    print(
+                        f"Retrying in {wait_time} seconds... (attempt {retry_count+1}/{max_retries})"
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    print("Max retries reached. Token generation failed.")
+                    return
 
 def stream_audio(audio_buffer):
     """Stream audio buffer to output device with error handling."""
@@ -425,7 +412,7 @@ def split_text_into_sentences(text):
     
     return combined_sentences
 
-def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE,
+async def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE,
                      top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=None,
                      use_batching=True, max_batch_chars=1000):
     """Generate speech from text using Orpheus model.
@@ -444,12 +431,6 @@ def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temp
 
     start_time = time.time()
 
-    async def _async_wrap(gen):
-        """Convert synchronous generator to async."""
-        for item in gen:
-            yield item
-            await asyncio.sleep(0)
-
     async def _stream_batches(batches):
         for batch in batches:
             token_gen = generate_tokens_from_api(
@@ -460,7 +441,7 @@ def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temp
                 max_tokens=max_tokens,
                 repetition_penalty=REPETITION_PENALTY,
             )
-            async for chunk in tokens_decoder(_async_wrap(token_gen)):
+            async for chunk in tokens_decoder(token_gen):
                 yield chunk
 
     # When writing to file, iterate over decoded chunks and save them
@@ -471,8 +452,7 @@ def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temp
             wav_file.setnchannels(1)
             wav_file.setsampwidth(2)
             wav_file.setframerate(SAMPLE_RATE)
-
-            for chunk in tokens_decoder_sync(
+            async for chunk in tokens_decoder_sync(
                 generate_tokens_from_api(
                     prompt=prompt,
                     voice=voice,
@@ -636,13 +616,15 @@ def main():
     
     # Generate speech
     start_time = time.time()
-    audio_segments = generate_speech_from_api(
-        prompt=prompt,
-        voice=args.voice,
-        temperature=args.temperature,
-        top_p=args.top_p,
-        repetition_penalty=args.repetition_penalty,
-        output_file=output_file
+    audio_segments = asyncio.run(
+        generate_speech_from_api(
+            prompt=prompt,
+            voice=args.voice,
+            temperature=args.temperature,
+            top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty,
+            output_file=output_file,
+        )
     )
     end_time = time.time()
     
