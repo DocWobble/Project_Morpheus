@@ -65,14 +65,15 @@ from tts_engine.adapter_registry import (
 from orchestrator.core import Orchestrator
 from orchestrator.buffer import PlaybackBuffer
 from orchestrator.chunk_ladder import ChunkLadder
+from orchestrator.stitcher import stitch_chunks
 import struct
 import wave
 
 
-async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
-    """Wrap a PCM iterator with a WAV header for streaming."""
+def riff_header(sample_rate: int = SAMPLE_RATE) -> bytes:
+    """Return a generic RIFF/WAVE header with unknown length."""
     byte_rate = sample_rate * 2
-    header = struct.pack(
+    return struct.pack(
         '<4sI4s4sIHHIIHH4sI',
         b'RIFF',
         0xFFFFFFFF,
@@ -88,7 +89,11 @@ async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
         b'data',
         0xFFFFFFFF,
     )
-    yield header
+
+
+async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
+    """Wrap a PCM iterator with a WAV header for streaming."""
+    yield riff_header(sample_rate)
     async for chunk in pcm_iter:
         yield chunk
 
@@ -110,6 +115,13 @@ async def pcm_stream_with_optional_save(pcm_iter, save_path: Optional[str] = Non
     finally:
         if wav_file:
             wav_file.close()
+
+
+async def websocket_pcm_stream(websocket: WebSocket, pcm_iter, sample_rate: int = SAMPLE_RATE):
+    """Send a WAV header followed by PCM frames over a WebSocket."""
+    await websocket.send_bytes(riff_header(sample_rate))
+    async for chunk in pcm_iter:
+        await websocket.send_bytes(chunk)
 
 
 # Global orchestrator instance for barge-in control
@@ -143,7 +155,11 @@ async def orchestrated_pcm_stream(
     )
     buffer = PlaybackBuffer(capacity_ms=1000)
     current_orchestrator = Orchestrator(adapter, buffer, ChunkLadder())
-    async for chunk in current_orchestrator.stream():
+    stitched = stitch_chunks(
+        current_orchestrator.stream(),
+        sample_rate=SAMPLE_RATE,
+    )
+    async for chunk in stitched:
         yield chunk.pcm
 
 # Create FastAPI app
@@ -272,6 +288,20 @@ async def barge_in_ws(websocket: WebSocket):
             if current_orchestrator:
                 current_orchestrator.signal_barge_in()
                 await websocket.send_text("ok")
+    except WebSocketDisconnect:
+        pass
+
+
+@app.websocket("/ws/tts")
+async def tts_ws(websocket: WebSocket, prompt: str, voice: str | None = None):
+    """Stream synthesized audio over WebSocket."""
+    await websocket.accept()
+    try:
+        pcm_stream = orchestrated_pcm_stream(
+            prompt=prompt,
+            voice=voice,
+        )
+        await websocket_pcm_stream(websocket, pcm_stream, sample_rate=SAMPLE_RATE)
     except WebSocketDisconnect:
         pass
 

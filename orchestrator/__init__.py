@@ -4,6 +4,7 @@ from .buffer import PlaybackBuffer
 from .chunk_ladder import ChunkLadder
 from .core import Orchestrator
 from .ring_buffer import RingBuffer
+from .stitcher import stitch_chunks
 
 __all__ = [
     "AudioChunk",
@@ -12,4 +13,5 @@ __all__ = [
     "ChunkLadder",
     "RingBuffer",
     "Orchestrator",
+    "stitch_chunks",
 ]
