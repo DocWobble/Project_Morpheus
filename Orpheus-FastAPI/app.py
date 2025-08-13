@@ -54,6 +54,7 @@ import json
 from tts_engine import generate_speech_from_api, AVAILABLE_VOICES, DEFAULT_VOICE, VOICE_TO_LANGUAGE, AVAILABLE_LANGUAGES
 from tts_engine.inference import SAMPLE_RATE
 import struct
+import wave
 
 
 async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
@@ -78,6 +79,25 @@ async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
     yield header
     async for chunk in pcm_iter:
         yield chunk
+
+
+async def pcm_stream_with_optional_save(pcm_iter, save_path: Optional[str] = None):
+    """Yield PCM chunks and optionally persist them to a WAV file."""
+    wav_file = None
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        wav_file = wave.open(save_path, "wb")
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(SAMPLE_RATE)
+    try:
+        async for chunk in pcm_iter:
+            if wav_file:
+                wav_file.writeframes(chunk)
+            yield chunk
+    finally:
+        if wav_file:
+            wav_file.close()
 
 # Create FastAPI app
 app = FastAPI(
@@ -160,43 +180,40 @@ async def list_voices():
 # Legacy API endpoint for compatibility
 @app.post("/speak")
 async def speak(request: Request):
-    """Legacy endpoint for compatibility with existing clients"""
+    """Legacy endpoint that now streams audio directly"""
     data = await request.json()
     text = data.get("text", "")
     voice = data.get("voice", DEFAULT_VOICE)
+    save_audio = bool(data.get("save_audio", False))
 
     if not text:
-        return JSONResponse(
-            status_code=400, 
-            content={"error": "Missing 'text'"}
-        )
+        raise HTTPException(status_code=400, detail="Missing 'text'")
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"outputs/{voice}_{timestamp}.wav"
-    
-    # Check if we should use batched generation for longer texts
+    # Determine if batched generation is needed
     use_batching = len(text) > 1000
     if use_batching:
         print(f"Using batched generation for long text ({len(text)} characters)")
-    
-    # Generate speech with batching for longer texts
-    start = time.time()
-    generate_speech_from_api(
-        prompt=text, 
-        voice=voice, 
-        output_file=output_path,
-        use_batching=use_batching,
-        max_batch_chars=1000
-    )
-    end = time.time()
-    generation_time = round(end - start, 2)
 
-    return JSONResponse(content={
-        "status": "ok",
-        "voice": voice,
-        "output_file": output_path,
-        "generation_time": generation_time
-    })
+    output_path = None
+    if save_audio:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = f"outputs/{voice}_{timestamp}.wav"
+
+    pcm_stream = generate_speech_from_api(
+        prompt=text,
+        voice=voice,
+        use_batching=use_batching,
+        max_batch_chars=1000,
+    )
+
+    stream = pcm_stream_with_optional_save(pcm_stream, output_path if save_audio else None)
+    response = StreamingResponse(
+        wav_streamer(stream, sample_rate=SAMPLE_RATE),
+        media_type="audio/wav",
+    )
+    if output_path:
+        response.headers["X-Output-File"] = output_path
+    return response
 
 # Web UI routes
 @app.get("/", response_class=HTMLResponse)
@@ -314,59 +331,41 @@ def get_current_config():
     
     return config
 
-@app.post("/web/", response_class=HTMLResponse)
+@app.post("/web/")
 async def generate_from_web(
     request: Request,
     text: str = Form(...),
-    voice: str = Form(DEFAULT_VOICE)
+    voice: str = Form(DEFAULT_VOICE),
+    save_audio: bool = Form(False),
 ):
-    """Handle form submission from web UI"""
+    """Handle form submission from web UI and stream audio"""
     if not text:
-        return templates.TemplateResponse(
-            "tts.html",
-            {
-                "request": request,
-                "error": "Please enter some text.",
-                "voices": AVAILABLE_VOICES,
-                "VOICE_TO_LANGUAGE": VOICE_TO_LANGUAGE,
-                "AVAILABLE_LANGUAGES": AVAILABLE_LANGUAGES
-            }
-        )
-    
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"outputs/{voice}_{timestamp}.wav"
-    
-    # Check if we should use batched generation for longer texts
+        raise HTTPException(status_code=400, detail="Please enter some text.")
+
     use_batching = len(text) > 1000
     if use_batching:
         print(f"Using batched generation for long text from web form ({len(text)} characters)")
-    
-    # Generate speech with batching for longer texts
-    start = time.time()
-    generate_speech_from_api(
-        prompt=text, 
-        voice=voice, 
-        output_file=output_path,
+
+    output_path = None
+    if save_audio:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = f"outputs/{voice}_{timestamp}.wav"
+
+    pcm_stream = generate_speech_from_api(
+        prompt=text,
+        voice=voice,
         use_batching=use_batching,
-        max_batch_chars=1000
+        max_batch_chars=1000,
     )
-    end = time.time()
-    generation_time = round(end - start, 2)
-    
-    return templates.TemplateResponse(
-        "tts.html",
-        {
-            "request": request,
-            "success": True,
-            "text": text,
-            "voice": voice,
-            "output_file": output_path,
-            "generation_time": generation_time,
-            "voices": AVAILABLE_VOICES,
-            "VOICE_TO_LANGUAGE": VOICE_TO_LANGUAGE,
-            "AVAILABLE_LANGUAGES": AVAILABLE_LANGUAGES
-        }
+
+    stream = pcm_stream_with_optional_save(pcm_stream, output_path if save_audio else None)
+    response = StreamingResponse(
+        wav_streamer(stream, sample_rate=SAMPLE_RATE),
+        media_type="audio/wav",
     )
+    if output_path:
+        response.headers["X-Output-File"] = output_path
+    return response
 
 if __name__ == "__main__":
     import uvicorn
