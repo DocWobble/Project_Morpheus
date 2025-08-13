@@ -669,126 +669,83 @@ def split_text_into_sentences(text):
     
     return combined_sentences
 
-def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE, 
-                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=None, 
+def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE,
+                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=None,
                      use_batching=True, max_batch_chars=1000):
-    """Generate speech from text using Orpheus model with performance optimizations."""
+    """Generate speech from text using Orpheus model.
+
+    When ``output_file`` is provided the audio is written to disk and the
+    generated PCM segments are returned.  If ``output_file`` is ``None`` the
+    function returns an async generator yielding raw PCM chunks suitable for
+    streaming.
+    """
     print(f"Starting speech generation for '{prompt[:50]}{'...' if len(prompt) > 50 else ''}'")
     print(f"Using voice: {voice}, GPU acceleration: {'Yes (High-end)' if HIGH_END_GPU else 'Yes' if torch.cuda.is_available() else 'No'}")
-    
+
     # Reset performance monitor
     global perf_monitor
     perf_monitor = PerformanceMonitor()
-    
+
     start_time = time.time()
-    
-    # For shorter text, use the standard non-batched approach
-    if not use_batching or len(prompt) < max_batch_chars:
-        # Note: we ignore any provided repetition_penalty and always use the hardcoded value
-        # This ensures consistent quality regardless of what might be passed in
-        result = tokens_decoder_sync(
-            generate_tokens_from_api(
-                prompt=prompt, 
-                voice=voice,
-                temperature=temperature,
-                top_p=top_p,
-                max_tokens=max_tokens,
-                repetition_penalty=REPETITION_PENALTY  # Always use hardcoded value
-            ),
-            output_file=output_file
-        )
-        
-        # Report final performance metrics
-        end_time = time.time()
-        total_time = end_time - start_time
-        print(f"Total speech generation completed in {total_time:.2f} seconds")
-        
-        return result
-    
-    # For longer text, use sentence-based batching
-    print(f"Using sentence-based batching for text with {len(prompt)} characters")
-    
-    # Split the text into sentences
-    sentences = split_text_into_sentences(prompt)
-    print(f"Split text into {len(sentences)} segments")
-    
-    # Create batches by combining sentences up to max_batch_chars
-    batches = []
-    current_batch = ""
-    
-    for sentence in sentences:
-        # If adding this sentence would exceed the batch size, start a new batch
-        if len(current_batch) + len(sentence) > max_batch_chars and current_batch:
-            batches.append(current_batch)
-            current_batch = sentence
-        else:
-            # Add separator space if needed
-            if current_batch:
-                current_batch += " "
-            current_batch += sentence
-    
-    # Add the last batch if it's not empty
-    if current_batch:
-        batches.append(current_batch)
-    
-    print(f"Created {len(batches)} batches for processing")
-    
-    # Process each batch and collect audio segments
-    all_audio_segments = []
-    batch_temp_files = []
-    
-    for i, batch in enumerate(batches):
-        print(f"Processing batch {i+1}/{len(batches)} ({len(batch)} characters)")
-        
-        # Create a temporary file for this batch if an output file is requested
-        temp_output_file = None
-        if output_file:
-            temp_output_file = f"outputs/temp_batch_{i}_{int(time.time())}.wav"
-            batch_temp_files.append(temp_output_file)
-        
-        # Generate speech for this batch
-        batch_segments = tokens_decoder_sync(
-            generate_tokens_from_api(
+
+    async def _async_wrap(gen):
+        """Convert synchronous generator to async."""
+        for item in gen:
+            yield item
+            await asyncio.sleep(0)
+
+    async def _stream_batches(batches):
+        for batch in batches:
+            token_gen = generate_tokens_from_api(
                 prompt=batch,
                 voice=voice,
                 temperature=temperature,
                 top_p=top_p,
                 max_tokens=max_tokens,
-                repetition_penalty=REPETITION_PENALTY
+                repetition_penalty=REPETITION_PENALTY,
+            )
+            async for chunk in tokens_decoder(_async_wrap(token_gen)):
+                yield chunk
+
+    # When writing to file, use the existing synchronous pipeline
+    if output_file:
+        result = tokens_decoder_sync(
+            generate_tokens_from_api(
+                prompt=prompt,
+                voice=voice,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+                repetition_penalty=REPETITION_PENALTY,
             ),
-            output_file=temp_output_file
+            output_file=output_file,
         )
-        
-        # Add to our collection
-        all_audio_segments.extend(batch_segments)
-    
-    # If an output file was requested, stitch together the temporary files
-    if output_file and batch_temp_files:
-        # Stitch together WAV files
-        stitch_wav_files(batch_temp_files, output_file)
-        
-        # Clean up temporary files
-        for temp_file in batch_temp_files:
-            try:
-                os.remove(temp_file)
-            except Exception as e:
-                print(f"Warning: Could not remove temporary file {temp_file}: {e}")
-    
-    # Report final performance metrics
-    end_time = time.time()
-    total_time = end_time - start_time
-    
-    # Calculate combined duration
-    if all_audio_segments:
-        total_bytes = sum(len(segment) for segment in all_audio_segments)
-        duration = total_bytes / (2 * SAMPLE_RATE)  # 2 bytes per sample at 24kHz
-        print(f"Generated {len(all_audio_segments)} audio segments")
-        print(f"Generated {duration:.2f} seconds of audio in {total_time:.2f} seconds")
-        print(f"Realtime factor: {duration/total_time:.2f}x")
-        
-    print(f"Total speech generation completed in {total_time:.2f} seconds")
-    
-    return all_audio_segments
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        print(f"Total speech generation completed in {total_time:.2f} seconds")
+        return result
+
+    # Streaming path – operate entirely in memory
+    batches = [prompt]
+    if use_batching and len(prompt) >= max_batch_chars:
+        print(f"Using sentence-based batching for text with {len(prompt)} characters")
+        sentences = split_text_into_sentences(prompt)
+        current_batch = ""
+        batches = []
+        for sentence in sentences:
+            if len(current_batch) + len(sentence) > max_batch_chars and current_batch:
+                batches.append(current_batch)
+                current_batch = sentence
+            else:
+                if current_batch:
+                    current_batch += " "
+                current_batch += sentence
+        if current_batch:
+            batches.append(current_batch)
+        print(f"Created {len(batches)} batches for processing")
+
+    return _stream_batches(batches)
 
 def stitch_wav_files(input_files, output_file, crossfade_ms=50):
     """Stitch multiple WAV files together with crossfading for smooth transitions."""
