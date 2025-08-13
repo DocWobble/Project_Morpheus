@@ -67,9 +67,12 @@ class OrpheusModel:
         return AsyncLLMEngine.from_engine_args(engine_args)
     
     def validate_voice(self, voice):
-        if voice:
-            if voice not in self.engine.available_voices:
-                raise ValueError(f"Voice {voice} is not available for model {self.model_name}")
+        if voice and voice not in self.available_voices:
+            available = ", ".join(self.available_voices)
+            raise ValueError(
+                f"Voice {voice} is not available for model {self.model_name}."
+                f" Supported voices: {available}"
+            )
     
     def _format_prompt(self, prompt, voice="tara", model_type="larger"):
         if model_type == "smaller":
