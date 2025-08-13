@@ -673,7 +673,14 @@ def split_text_into_sentences(text):
 async def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE,
                      top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=None,
                      use_batching=True, max_batch_chars=1000):
-    """Generate speech from text using Orpheus model with performance optimizations."""
+    """Asynchronously synthesize speech from text.
+
+    When ``output_file`` is provided the synthesized audio is written to disk and
+    a list of PCM segments is returned. If ``output_file`` is ``None`` the
+    function yields PCM chunks suitable for streaming. This async implementation
+    replaces the previous synchronous version removed during conflict
+    resolution.
+    """
     print(f"Starting speech generation for '{prompt[:50]}{'...' if len(prompt) > 50 else ''}'")
     print(f"Using voice: {voice}, GPU acceleration: {'Yes (High-end)' if HIGH_END_GPU else 'Yes' if torch.cuda.is_available() else 'No'}")
     
