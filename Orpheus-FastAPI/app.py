@@ -113,7 +113,7 @@ async def create_speech_api(request: SpeechRequest):
     
     # Generate speech with automatic batching for long texts
     start = time.time()
-    generate_speech_from_api(
+    await generate_speech_from_api(
         prompt=request.input,
         voice=request.voice,
         output_file=output_path,
@@ -166,9 +166,9 @@ async def speak(request: Request):
     
     # Generate speech with batching for longer texts
     start = time.time()
-    generate_speech_from_api(
-        prompt=text, 
-        voice=voice, 
+    await generate_speech_from_api(
+        prompt=text,
+        voice=voice,
         output_file=output_path,
         use_batching=use_batching,
         max_batch_chars=1000
@@ -328,9 +328,9 @@ async def generate_from_web(
     
     # Generate speech with batching for longer texts
     start = time.time()
-    generate_speech_from_api(
-        prompt=text, 
-        voice=voice, 
+    await generate_speech_from_api(
+        prompt=text,
+        voice=voice,
         output_file=output_path,
         use_batching=use_batching,
         max_batch_chars=1000
