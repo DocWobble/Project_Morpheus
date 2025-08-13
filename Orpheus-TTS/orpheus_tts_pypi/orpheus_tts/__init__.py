@@ -2,7 +2,7 @@
 
 __version__ = "0.1.0"
 
-# Import and expose the main function
-# from .main import generate_tokens_sync
-from .decoder import tokens_decoder_sync
+from tts_engine.speechpipe import tokens_decoder_sync
 from .engine_class import OrpheusModel
+
+__all__ = ["tokens_decoder_sync", "OrpheusModel"]
