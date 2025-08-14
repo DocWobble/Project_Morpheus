@@ -1,3 +1,11 @@
+"""Helpers for running scenario scenes and capturing artifacts.
+
+`scenes` modules use these utilities to drive the orchestrator with a mock
+``TTSAdapter`` while collecting a timeline and WAV file for auditing.  The
+primary entry point is :func:`run_scene`, which executes a scene and writes the
+resulting artifacts to disk.
+"""
+
 import asyncio
 import json
 import time
