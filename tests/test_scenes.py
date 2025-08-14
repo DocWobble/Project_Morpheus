@@ -8,6 +8,8 @@ def test_breathing_room(tmp_path):
     timeline = info["timeline"]
     assert len(timeline) >= 2
     assert timeline[0]["chunk_id"] == 0
+    assert "token_window" in timeline[0]
+    assert "render_ms" in timeline[0]
 
 
 def test_long_read(tmp_path):

@@ -12,7 +12,7 @@ import base64
 import json
 import logging
 import time
-from typing import AsyncGenerator, Tuple
+from typing import AsyncGenerator, Callable, Tuple
 
 from .adapter import AudioChunk, TTSAdapter
 from .buffer import PlaybackBuffer
@@ -45,11 +45,23 @@ class Orchestrator:
         """Notify the orchestrator that the current utterance was interrupted."""
         self._barge_in.set()
 
-    async def stream(self) -> AsyncGenerator[AudioChunk, None]:
-        """Yield audio chunks until EOS or a barge-in occurs."""
+    async def stream(
+        self, on_event: Callable[[dict], None] | None = None
+    ) -> AsyncGenerator[AudioChunk, None]:
+        """Yield audio chunks until EOS or a barge-in occurs.
+
+        Parameters
+        ----------
+        on_event: Callable[[dict], None] | None, optional
+            If provided, this callable is invoked with a JSON-serialisable
+            dictionary describing each emitted chunk.  The payload matches the
+            structured log entry and includes ``chunk_id``, ``adapter``,
+            ``token_window`` and ``render_ms`` along with the base64-encoded
+            PCM data.
+        """
         chunk_id = 0
-        adapter_name = getattr(self.adapter, "name", self.adapter.__class__.__name__)
         while not self._barge_in.is_set():
+            adapter_name = getattr(self.adapter, "name", self.adapter.__class__.__name__)
             window = self.ladder.current
             start = time.perf_counter()
             chunk = await self.adapter.pull(window)
@@ -63,6 +75,8 @@ class Orchestrator:
                 "pcm": base64.b64encode(chunk.pcm).decode("ascii"),
             }
             logger.info(json.dumps(log_entry))
+            if on_event is not None:
+                on_event(log_entry)
 
             if self.ring is not None:
                 self.ring.write(chunk.pcm)

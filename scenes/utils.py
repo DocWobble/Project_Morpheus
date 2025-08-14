@@ -30,22 +30,21 @@ def run_scene(scene_name: str, adapter, tmp_path: Path, barge_in_at: int | None 
     start = time.perf_counter()
 
     async def _run():
-        chunk_id = 0
-        async for chunk in orch.stream():
+        events: list[dict] = []
+        async for chunk in orch.stream(on_event=events.append):
             now = (time.perf_counter() - start) * 1000.0
+            event = events.pop(0)
             audio_bytes.extend(chunk.pcm)
             timeline.append(
                 {
-                    "chunk_id": chunk_id,
-                    "adapter": getattr(adapter, "name", adapter.__class__.__name__),
+                    **event,
                     "timestamp_ms": now,
                     "duration_ms": chunk.duration_ms,
                     "buffer_ms": buffer.depth_ms,
                 }
             )
-            if barge_in_at is not None and chunk_id == barge_in_at:
+            if barge_in_at is not None and event["chunk_id"] == barge_in_at:
                 orch.signal_barge_in()
-            chunk_id += 1
 
     asyncio.run(_run())
 
