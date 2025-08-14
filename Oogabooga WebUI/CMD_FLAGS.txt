@@ -1,0 +1,6 @@
+--extensions text-to-tts-webui
+--listen
+--api
+--auto-devices
+--chat
+--trust-remote-code
