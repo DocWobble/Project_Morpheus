@@ -12,9 +12,9 @@ import time
 import wave
 from pathlib import Path
 
-from orchestrator.buffer import PlaybackBuffer
-from orchestrator.chunk_ladder import ChunkLadder
-from orchestrator.core import Orchestrator
+from morpheus_tts.orchestrator.buffer import PlaybackBuffer
+from morpheus_tts.orchestrator.chunk_ladder import ChunkLadder
+from morpheus_tts.orchestrator.core import Orchestrator
 
 
 def run_scene(scene_name: str, adapter, tmp_path: Path, barge_in_at: int | None = None):

@@ -1,5 +1,5 @@
 """Mid-Stream Swap scenario."""
-from orchestrator.adapter import AudioChunk, TTSAdapter
+from morpheus_tts.orchestrator.adapter import AudioChunk, TTSAdapter
 
 from .utils import run_scene
 

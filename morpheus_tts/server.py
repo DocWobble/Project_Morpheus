@@ -4,13 +4,13 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
-from tts_engine import DEFAULT_VOICE
-from tts_engine.inference import SAMPLE_RATE
-from tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
-from orchestrator.core import Orchestrator
-from orchestrator.buffer import PlaybackBuffer
-from orchestrator.chunk_ladder import ChunkLadder
-from orchestrator.stitcher import stitch_chunks
+from .tts_engine import DEFAULT_VOICE
+from .tts_engine.inference import SAMPLE_RATE
+from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
+from .orchestrator.core import Orchestrator
+from .orchestrator.buffer import PlaybackBuffer
+from .orchestrator.chunk_ladder import ChunkLadder
+from .orchestrator.stitcher import stitch_chunks
 
 
 def riff_header(sample_rate: int = SAMPLE_RATE) -> bytes:
@@ -176,3 +176,10 @@ async def barge_in_ws(websocket: WebSocket):
                 await websocket.send_text("ok")
     except WebSocketDisconnect:
         pass
+
+
+def start_server(host: str = "0.0.0.0", port: int = 5005) -> None:
+    """Start the Morpheus TTS FastAPI server using uvicorn."""
+    import uvicorn
+
+    uvicorn.run(app, host=host, port=port)

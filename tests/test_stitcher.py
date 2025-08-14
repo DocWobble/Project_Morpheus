@@ -7,8 +7,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from orchestrator.adapter import AudioChunk
-from orchestrator.stitcher import stitch_chunks
+from morpheus_tts.orchestrator.adapter import AudioChunk
+from morpheus_tts.orchestrator.stitcher import stitch_chunks
 
 
 async def collect_chunks(it):

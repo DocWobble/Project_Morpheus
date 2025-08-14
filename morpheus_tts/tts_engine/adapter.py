@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import AsyncGenerator, Optional
 
-from orchestrator.adapter import AudioChunk, TTSAdapter as TTSAdapterProtocol
+from ..orchestrator.adapter import AudioChunk, TTSAdapter as TTSAdapterProtocol
 
 from .inference import (
     generate_speech_from_api,

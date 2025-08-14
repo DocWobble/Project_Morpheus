@@ -7,7 +7,7 @@ import torch
 from transformers import AutoTokenizer
 from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams
 
-from tts_engine.speechpipe import tokens_decoder_sync
+from morpheus_tts.tts_engine.speechpipe import tokens_decoder_sync
 
 class OrpheusModel:
     def __init__(self, model_name, dtype=torch.bfloat16, tokenizer='canopylabs/orpheus-3b-0.1-pretrained', **engine_kwargs):
