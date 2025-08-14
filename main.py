@@ -27,8 +27,8 @@ load_dotenv(override=True)
 
 
 if __name__ == "__main__":
-    import uvicorn
+    from morpheus_tts import start_server
 
     host = os.getenv("ORPHEUS_HOST", "0.0.0.0")
     port = int(os.getenv("ORPHEUS_PORT", "5005"))
-    uvicorn.run("core_service.api:app", host=host, port=port)
+    start_server(host=host, port=port)
