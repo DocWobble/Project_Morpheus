@@ -9,7 +9,9 @@ import wave
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Rebuild audio from timeline JSON logs")
-    parser.add_argument("log", help="Path to JSON lines timeline log")
+    parser.add_argument(
+        "log", help="Path to timeline log (JSON lines or array)"
+    )
     parser.add_argument(
         "-o", "--out", default="replay.wav", help="Destination WAV file"
     )
@@ -20,14 +22,15 @@ def main() -> None:
 
     pcm = bytearray()
     with open(args.log, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            event = json.loads(line)
-            data = event.get("pcm")
-            if data:
-                pcm.extend(base64.b64decode(data))
+        content = f.read().strip()
+    if content.startswith("["):
+        events = json.loads(content)
+    else:
+        events = [json.loads(line) for line in content.splitlines() if line]
+    for event in events:
+        data = event.get("pcm")
+        if data:
+            pcm.extend(base64.b64decode(data))
 
     with wave.open(args.out, "wb") as wf:
         wf.setnchannels(1)
