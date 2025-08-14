@@ -15,3 +15,6 @@ from .inference import (
     AVAILABLE_LANGUAGES,
     list_available_voices
 )
+
+# Export adapter for orchestrator integration
+from .adapter import TTSAdapter
