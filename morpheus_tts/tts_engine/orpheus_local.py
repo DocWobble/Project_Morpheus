@@ -12,6 +12,51 @@ the configured sample rate.
 from __future__ import annotations
 
 from typing import AsyncGenerator, Optional
+from importlib import metadata
+
+
+def _get_orpheuscpp_version() -> str:
+    """Return the installed OrpheusCpp version or ``"unknown"``.
+
+    The function is defensive – if the package isn't installed or metadata
+    cannot be read, ``"unknown"`` is returned rather than raising.  This keeps
+    error messages informative without introducing a hard dependency.
+    """
+
+    try:
+        return metadata.version("OrpheusCpp")
+    except Exception:  # pragma: no cover - best effort only
+        return "unknown"
+
+
+def _set_snac_decoder_session(decoder: object, session: object) -> None:
+    """Assign ``session`` to a SNAC decoder with graceful fallback.
+
+    OrpheusCpp has historically exposed the decoder session as a mutable
+    attribute (``decoder.session``).  Future versions may instead provide a
+    ``set_session`` method or remove direct access entirely.  This helper tries
+    both approaches and emits a clear error if neither is available so that
+    callers receive actionable feedback rather than an ``AttributeError``.
+    """
+
+    if hasattr(decoder, "set_session"):
+        decoder.set_session(session)
+        return
+
+    if hasattr(decoder, "session"):
+        try:
+            setattr(decoder, "session", session)
+            return
+        except Exception as exc:  # pragma: no cover - assignment failed
+            raise RuntimeError(
+                "OrpheusCpp refuses setting the SNAC decoder session. "
+                "Please update to a compatible version."
+            ) from exc
+
+    raise RuntimeError(
+        "Installed OrpheusCpp %s lacks a supported API to configure the "
+        "SNAC decoder session." % _get_orpheuscpp_version()
+    )
 
 from ..orchestrator.adapter import (
     AudioChunk,
@@ -35,6 +80,8 @@ class TTSAdapter(TTSAdapterProtocol):
         *,
         use_batching: bool = False,
         max_batch_chars: int = 1000,
+        snac_decoder: Optional[object] = None,
+        snac_session: Optional[object] = None,
     ) -> None:
         self.prompt = prompt
         self.voice = voice
@@ -43,6 +90,14 @@ class TTSAdapter(TTSAdapterProtocol):
         self._gen: Optional[AsyncGenerator[bytes, None]] = None
         self._buffer = bytearray()
         self._exhausted = False
+
+        # When running fully locally with OrpheusCpp we may need to manually
+        # bind a decoder session.  Older releases required direct attribute
+        # assignment (``decoder.session``) which breaks when the attribute is
+        # removed.  By funnelling the operation through a helper we can detect
+        # unsupported versions early and emit an actionable error message.
+        if snac_decoder is not None and snac_session is not None:
+            _set_snac_decoder_session(snac_decoder, snac_session)
 
     async def _ensure_gen(self) -> None:
         if self._gen is None and not self._exhausted:
