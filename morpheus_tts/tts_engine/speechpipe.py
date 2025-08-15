@@ -35,7 +35,12 @@ try:
 except:
     pass
 
-model = SNAC.from_pretrained("hubertsiuzdak/snac_24khz").eval()
+# Allow overriding the SNAC model path via environment variable for offline use.
+# When ORPHEUS_SNAC_PATH is set, pass the path directly to `from_pretrained`.
+# Otherwise fall back to the default HuggingFace repository.
+snac_path = os.environ.get("ORPHEUS_SNAC_PATH")
+model_source = snac_path if snac_path else "hubertsiuzdak/snac_24khz"
+model = SNAC.from_pretrained(model_source).eval()
 
 # Check if CUDA is available and set device accordingly
 snac_device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
