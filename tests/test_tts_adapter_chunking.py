@@ -24,17 +24,22 @@ class DummyAdapter(TTSAdapter):
 
 def test_pull_respects_chunk_size():
     adapter = DummyAdapter(prompt="hi")
-    chunk_ms = 1
-    target_bytes = int(chunk_ms / 1000 * SAMPLE_RATE * 2)
+    chunk_ms = 0.5
+    chunk_bytes = int(chunk_ms / 1000 * SAMPLE_RATE * 2)
 
     async def run():
-        return [await adapter.pull(chunk_ms) for _ in range(3)]
+        chunks = []
+        while True:
+            chunk = await adapter.pull(chunk_bytes)
+            chunks.append(chunk)
+            if chunk.eos:
+                break
+        return chunks
 
-    first, second, third = asyncio.run(run())
+    chunks = asyncio.run(run())
 
-    assert len(first.pcm) == target_bytes
-    assert len(second.pcm) == target_bytes
-    assert len(third.pcm) == 100 - 2 * target_bytes
-    assert third.eos
-    assert all(len(c.pcm) <= target_bytes for c in (first, second))
+    assert all(len(c.pcm) == chunk_bytes for c in chunks[:-1])
+    assert len(chunks[-1].pcm) == 100 - chunk_bytes * (len(chunks) - 1)
+    assert chunks[-1].eos
+    assert all(len(c.pcm) <= chunk_bytes for c in chunks)
 
