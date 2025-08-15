@@ -1,8 +1,8 @@
 """Orpheus TTS adapter for local PCM streaming.
 
-This adapter wraps :func:`generate_speech_from_api` and translates its
-output into :class:`~morpheus_tts.orchestrator.adapter.AudioChunk`
-objects.  The underlying generator may yield PCM segments of arbitrary
+Audio is generated using a locally loaded :class:`OrpheusCpp` model.  The
+model is cached at module scope so subsequent calls reuse the same
+instance.  The underlying generator may yield PCM segments of arbitrary
 size, so we maintain an internal buffer and slice the data to honour the
 ``chunk_size`` requested by the orchestrator.  ``chunk_size`` is
 expressed in milliseconds which is converted to a byte limit based on
@@ -11,7 +11,9 @@ the configured sample rate.
 
 from __future__ import annotations
 
-from typing import AsyncGenerator, Optional
+import asyncio
+from functools import lru_cache
+from typing import AsyncGenerator, Optional, TYPE_CHECKING
 
 from ..orchestrator.adapter import (
     AudioChunk,
@@ -19,14 +21,59 @@ from ..orchestrator.adapter import (
 )
 
 from .inference import (
-    generate_speech_from_api,
     SAMPLE_RATE,
     DEFAULT_VOICE,
 )
 
+if TYPE_CHECKING:  # pragma: no cover - used only for type hints
+    from orpheus_cpp import OrpheusCpp
+
+
+_model_lock = asyncio.Lock()
+
+
+@lru_cache(maxsize=1)
+def _load_model_sync() -> "OrpheusCpp":
+    """Load and cache the underlying :class:`OrpheusCpp` model."""
+
+    from orpheus_cpp import OrpheusCpp
+
+    # ``verbose`` is disabled to keep logs clean during tests; language is fixed
+    # to English which matches the default voice set.
+    return OrpheusCpp(verbose=False, lang="en")
+
+
+async def _load_model() -> "OrpheusCpp":
+    """Thread-safe coroutine returning the cached :class:`OrpheusCpp` instance."""
+
+    async with _model_lock:
+        return _load_model_sync()
+
+
+async def _stream_from_model(
+    model: "OrpheusCpp",
+    prompt: str,
+    voice: str,
+    *_: object,
+) -> AsyncGenerator[bytes, None]:
+    """Asynchronously stream PCM chunks from ``model``.
+
+    The underlying ``OrpheusCpp.stream_tts_sync`` method is synchronous.  We
+    execute each ``next`` call in a thread via :func:`asyncio.to_thread` to avoid
+    blocking the event loop.
+    """
+
+    gen = model.stream_tts_sync(prompt, options={"voice_id": voice})
+    while True:
+        try:
+            _sr, chunk = await asyncio.to_thread(next, gen)
+        except StopIteration:
+            break
+        yield chunk.tobytes()
+
 
 class TTSAdapter(TTSAdapterProtocol):
-    """Concrete adapter that streams PCM audio from the Orpheus API."""
+    """Concrete adapter that streams PCM audio from a local Orpheus model."""
 
     def __init__(
         self,
@@ -46,11 +93,13 @@ class TTSAdapter(TTSAdapterProtocol):
 
     async def _ensure_gen(self) -> None:
         if self._gen is None and not self._exhausted:
-            self._gen = await generate_speech_from_api(
-                prompt=self.prompt,
-                voice=self.voice,
-                use_batching=self.use_batching,
-                max_batch_chars=self.max_batch_chars,
+            model = await _load_model()
+            self._gen = _stream_from_model(
+                model,
+                self.prompt,
+                self.voice,
+                self.use_batching,
+                self.max_batch_chars,
             )
 
     async def pull(self, chunk_size: int) -> AudioChunk:
