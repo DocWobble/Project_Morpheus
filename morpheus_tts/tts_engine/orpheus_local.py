@@ -4,9 +4,11 @@ Audio is generated using a locally loaded :class:`OrpheusCpp` model.  The
 model is cached at module scope so subsequent calls reuse the same
 instance.  The underlying generator may yield PCM segments of arbitrary
 size, so we maintain an internal buffer and slice the data to honour the
-``chunk_size`` requested by the orchestrator.  ``chunk_size`` is
-expressed in milliseconds which is converted to a byte limit based on
-the configured sample rate.
+``chunk_size`` requested by the orchestrator.  ``chunk_size`` is the
+maximum number of PCM bytes that a returned
+:class:`~morpheus_tts.orchestrator.adapter.AudioChunk` may contain.
+This keeps the adapter agnostic to the sample rate while guaranteeing
+bounded chunk sizes.
 """
 
 from __future__ import annotations
@@ -108,12 +110,12 @@ class TTSAdapter(TTSAdapterProtocol):
         Parameters
         ----------
         chunk_size:
-            Desired chunk duration in milliseconds.  The adapter slices
-            the PCM stream so that the returned ``AudioChunk`` never
-            exceeds this duration.
+            Maximum number of PCM bytes to return.  The adapter slices
+            the buffered stream so that ``AudioChunk.pcm`` never exceeds
+            this value.
         """
 
-        target_bytes = int(chunk_size / 1000 * SAMPLE_RATE * 2)
+        target_bytes = chunk_size
 
         await self._ensure_gen()
 
