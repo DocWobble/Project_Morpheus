@@ -395,19 +395,19 @@ The inference server should be configured to expose an API endpoint that this Fa
 
 ### Environment Variables
 
-Configure in docker compose, if using docker. Not using docker; create a `.env` file:
+Copy `.env.example` to `.env` and adjust the values for your setup. These options control how the server connects to the inference backend and exposes its own API.
 
-- `ORPHEUS_API_URL`: URL of the LLM inference API (default in Docker: http://llama-cpp-server:5006/v1/completions)
-- `ORPHEUS_API_TIMEOUT`: Timeout in seconds for API requests (default: 120)
-- `ORPHEUS_MAX_TOKENS`: Maximum tokens to generate (default: 8192)
-- `ORPHEUS_TEMPERATURE`: Temperature for generation (default: 0.6)
-- `ORPHEUS_TOP_P`: Top-p sampling parameter (default: 0.9)
-- `ORPHEUS_SAMPLE_RATE`: Audio sample rate in Hz (default: 24000)
-- `ORPHEUS_PORT`: Web server port (default: 5005)
-- `ORPHEUS_HOST`: Web server host (default: 0.0.0.0)
-- `ORPHEUS_MODEL_NAME`: Model name for inference server
+- `ORPHEUS_API_URL` – Endpoint of the LLM inference server used for token generation (default: http://llama-cpp-server:5006/v1/completions in Docker, http://127.0.0.1:5006/v1/completions locally).
+- `ORPHEUS_API_TIMEOUT` – Timeout in seconds for requests to the inference server (default: 120).
+- `ORPHEUS_MAX_TOKENS` – Maximum number of tokens generated per request; raise for longer audio (default: 8192).
+- `ORPHEUS_TEMPERATURE` – Sampling temperature controlling creativity (default: 0.6).
+- `ORPHEUS_TOP_P` – Nucleus sampling parameter; lower values yield more deterministic output (default: 0.9).
+- `ORPHEUS_SAMPLE_RATE` – Output audio sample rate in Hz (default: 24000).
+- `ORPHEUS_MODEL_NAME` – Model identifier requested from the inference server (default: Orpheus-3b-FT-Q8_0.gguf).
+- `ORPHEUS_PORT` – Port that the FastAPI server listens on (default: 5005).
+- `ORPHEUS_HOST` – Host interface for the server; 0.0.0.0 exposes it on all network interfaces (default: 0.0.0.0).
 
-The system now supports loading environment variables from a `.env` file in the project root, making it easier to configure without modifying system-wide environment settings. See `.env.example` for a template.
+The system loads these settings from a `.env` file in the project root, making it easy to configure without touching system-wide variables. See `.env.example` for a template.
 
 ![Server Configuration UI](https://lex-au.github.io/Orpheus-FastAPI/ServerConfig.png)
 
