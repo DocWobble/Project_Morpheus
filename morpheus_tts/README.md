@@ -39,3 +39,15 @@ asyncio.run(main())
 The REST endpoint returns a streaming WAV response.  The WebSocket endpoint
 first sends a WAV header followed by PCM frames.  Both methods yield raw bytes
 that can be written to a file or played back incrementally.
+
+## Environment Variables
+
+The server respects several environment variables for SNAC configuration:
+
+- `ORPHEUS_SNAC_PATH`: Local path to SNAC model and voice files. Setting this
+  skips HuggingFace downloads and enables custom or finetuned voices
+- `ORPHEUS_GPU_LAYERS`: Number of transformer layers to offload to the GPU
+  (default: 20)
+- `ORPHEUS_CPU_THREADS`: Number of CPU threads used by the SNAC engine
+  (default: 8)
+- `ORPHEUS_LANG`: Default language code for voice selection (default: `en`)

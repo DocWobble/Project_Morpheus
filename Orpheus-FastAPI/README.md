@@ -406,6 +406,12 @@ Configure in docker compose, if using docker. Not using docker; create a `.env` 
 - `ORPHEUS_PORT`: Web server port (default: 5005)
 - `ORPHEUS_HOST`: Web server host (default: 0.0.0.0)
 - `ORPHEUS_MODEL_NAME`: Model name for inference server
+- `ORPHEUS_SNAC_PATH`: Local path to SNAC model and voice files. Providing a path
+  skips HuggingFace downloads and enables custom or finetuned voices
+- `ORPHEUS_GPU_LAYERS`: Number of transformer layers to offload to the GPU
+  (default: 20)
+- `ORPHEUS_CPU_THREADS`: Number of CPU threads used by the SNAC engine (default: 8)
+- `ORPHEUS_LANG`: Default language code for voice selection (default: `en`)
 
 The system now supports loading environment variables from a `.env` file in the project root, making it easier to configure without modifying system-wide environment settings. See `.env.example` for a template.
 
