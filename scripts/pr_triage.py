@@ -3,9 +3,10 @@
 
 This utility classifies each open PR in a repository as either
 "aligned" or "deprecated" based on the paths it modifies. A short
-comment with the classification result is posted on the PR. In
-addition, any pull request carrying a ``deprecated`` label is
-automatically closed with a brief rationale comment.
+comment with the classification result is posted on the PR. The
+classification label (``aligned`` or ``deprecated``) is applied to the
+pull request. Any PR classified as ``deprecated`` is also closed with a
+brief rationale comment.
 
 Usage:
     python scripts/pr_triage.py --repo <owner/repo> [--token <token>]
@@ -119,6 +120,46 @@ def close_pr(repo: str, number: int, token: str | None, *, dry_run: bool = False
     response.raise_for_status()
 
 
+def add_label(
+    repo: str,
+    number: int,
+    label: str,
+    token: str | None,
+    *,
+    dry_run: bool = False,
+) -> None:
+    """Attach *label* to a pull request."""
+    if dry_run:
+        print(f"Would add label {label!r} to PR #{number}")
+        return
+    if not token:
+        raise RuntimeError("A GitHub token is required to modify labels")
+    url = f"https://api.github.com/repos/{repo}/issues/{number}/labels"
+    headers = {"Accept": "application/vnd.github+json", "Authorization": f"token {token}"}
+    requests.post(url, headers=headers, json={"labels": [label]}).raise_for_status()
+
+
+def remove_label(
+    repo: str,
+    number: int,
+    label: str,
+    token: str | None,
+    *,
+    dry_run: bool = False,
+) -> None:
+    """Remove *label* from a pull request if present."""
+    if dry_run:
+        print(f"Would remove label {label!r} from PR #{number}")
+        return
+    if not token:
+        raise RuntimeError("A GitHub token is required to modify labels")
+    url = f"https://api.github.com/repos/{repo}/issues/{number}/labels/{label}"
+    headers = {"Accept": "application/vnd.github+json", "Authorization": f"token {token}"}
+    response = requests.delete(url, headers=headers)
+    if response.status_code not in (200, 204, 404):
+        response.raise_for_status()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Classify open pull requests")
     parser.add_argument("--repo", default=os.getenv("GITHUB_REPOSITORY"), help="Repository in 'owner/repo' form")
@@ -132,17 +173,24 @@ def main() -> None:
     prs = fetch_open_prs(args.repo, args.token)
     for pr in prs:
         number = pr["number"]
-        labels = {label["name"] for label in pr.get("labels", [])}
-        if "deprecated" in labels:
-            rationale = "Closing PR: feature superseded by streaming orchestrator design."
+        files = fetch_pr_files(args.repo, number, args.token)
+        classification = classify_paths(files)
+
+        if classification == "deprecated":
+            rationale = (
+                "PR triage result: **deprecated** — closing as the feature is "
+                "superseded by the streaming orchestrator design."
+            )
             post_comment(args.repo, number, rationale, args.token, dry_run=args.dry_run)
+            add_label(args.repo, number, "deprecated", args.token, dry_run=args.dry_run)
+            remove_label(args.repo, number, "aligned", args.token, dry_run=args.dry_run)
             close_pr(args.repo, number, args.token, dry_run=args.dry_run)
             continue
 
-        files = fetch_pr_files(args.repo, number, args.token)
-        classification = classify_paths(files)
-        body = f"PR triage result: **{classification}**"
+        body = "PR triage result: **aligned**"
         post_comment(args.repo, number, body, args.token, dry_run=args.dry_run)
+        add_label(args.repo, number, "aligned", args.token, dry_run=args.dry_run)
+        remove_label(args.repo, number, "deprecated", args.token, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
