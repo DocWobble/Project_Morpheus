@@ -1,0 +1,1 @@
+This directory is excluded from repo-wide auto-install scans to avoid triggering `uv`.
