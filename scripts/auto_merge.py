@@ -57,6 +57,14 @@ def add_label(repo: str, number: int, label: str, token: str | None) -> None:
     _request("post", url, token, json={"labels": [label]})
 
 
+def post_comment(repo: str, number: int, body: str, token: str | None) -> None:
+    """Post *body* as a comment on a pull request."""
+    if not token:
+        return
+    url = f"https://api.github.com/repos/{repo}/issues/{number}/comments"
+    _request("post", url, token, json={"body": body})
+
+
 def merge_pr(repo: str, number: int, token: str | None) -> None:
     """Merge pull request *number*."""
     url = f"https://api.github.com/repos/{repo}/pulls/{number}/merge"
@@ -92,8 +100,20 @@ def process_pr(pr: dict, repo: str, token: str | None) -> None:
         merge_pr(repo, number, token)
     except subprocess.CalledProcessError:
         add_label(repo, number, "merge-failed", token)
+        post_comment(
+            repo,
+            number,
+            "Auto-merge failed: rebase or tests did not succeed.",
+            token,
+        )
     except requests.HTTPError:
         add_label(repo, number, "merge-failed", token)
+        post_comment(
+            repo,
+            number,
+            "Auto-merge failed: GitHub API request error.",
+            token,
+        )
     finally:
         run(["git", "checkout", "main"])
         subprocess.run(["git", "branch", "-D", local_branch], check=False)
