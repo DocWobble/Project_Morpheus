@@ -3,7 +3,9 @@
 
 This utility classifies each open PR in a repository as either
 "aligned" or "deprecated" based on the paths it modifies. A short
-comment with the classification result is posted on the PR.
+comment with the classification result is posted on the PR. In
+addition, any pull request carrying a ``deprecated`` label is
+automatically closed with a brief rationale comment.
 
 Usage:
     python scripts/pr_triage.py --repo <owner/repo> [--token <token>]
@@ -80,16 +82,15 @@ def classify_paths(paths: Iterable[str]) -> str:
     return "aligned"
 
 
-def comment_on_pr(
+def post_comment(
     repo: str,
     number: int,
-    classification: str,
+    body: str,
     token: str | None,
     *,
     dry_run: bool = False,
 ) -> None:
-    """Post a classification comment on a pull request."""
-    body = f"PR triage result: **{classification}**"
+    """Post *body* as a comment on a pull request."""
     if dry_run:
         print(f"Would comment on PR #{number}: {body}")
         return
@@ -100,6 +101,21 @@ def comment_on_pr(
     url = f"https://api.github.com/repos/{repo}/issues/{number}/comments"
     headers = {"Accept": "application/vnd.github+json", "Authorization": f"token {token}"}
     response = requests.post(url, headers=headers, json={"body": body})
+    response.raise_for_status()
+
+
+def close_pr(repo: str, number: int, token: str | None, *, dry_run: bool = False) -> None:
+    """Close a pull request via the GitHub API."""
+    if dry_run:
+        print(f"Would close PR #{number}")
+        return
+
+    if not token:
+        raise RuntimeError("A GitHub token is required to close pull requests")
+
+    url = f"https://api.github.com/repos/{repo}/pulls/{number}"
+    headers = {"Accept": "application/vnd.github+json", "Authorization": f"token {token}"}
+    response = requests.patch(url, headers=headers, json={"state": "closed"})
     response.raise_for_status()
 
 
@@ -116,9 +132,17 @@ def main() -> None:
     prs = fetch_open_prs(args.repo, args.token)
     for pr in prs:
         number = pr["number"]
+        labels = {label["name"] for label in pr.get("labels", [])}
+        if "deprecated" in labels:
+            rationale = "Closing PR: feature superseded by streaming orchestrator design."
+            post_comment(args.repo, number, rationale, args.token, dry_run=args.dry_run)
+            close_pr(args.repo, number, args.token, dry_run=args.dry_run)
+            continue
+
         files = fetch_pr_files(args.repo, number, args.token)
         classification = classify_paths(files)
-        comment_on_pr(args.repo, number, classification, args.token, dry_run=args.dry_run)
+        body = f"PR triage result: **{classification}**"
+        post_comment(args.repo, number, body, args.token, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
