@@ -1,4 +1,6 @@
 httpx
 numpy
+psutil
+python-dotenv
 pytest
 websockets
