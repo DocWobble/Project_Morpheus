@@ -1,3 +1,7 @@
 
 /Oogabooga WebUI/installer_files/env
 
+# Ignore virtual environments
+**/.venv/
+# Ignore Python cache directories
+**/__pycache__/
