@@ -84,3 +84,39 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** `codex-rs/cli/tests/login_status.rs`, `codex-rs/cli/tests/proto.rs`
 - **Linked Decisions:** [2025-08-30] cli-exitcode-refactor
 - **Notes:** facilitates test assertions on exit codes
+
+### Capability: standalone-orchestrator
+
+- **Purpose:** Provide a self-contained orchestrator service that streams audio via Orpheus-FastAPI.
+- **Scope:** `Orpheus-FastAPI/app.py`, adapter registry.
+- **Shape:** single FastAPI process coordinates adapters and exposes streaming endpoints.
+- **Compatibility:** configured through `.env` and `/config`; no migrations yet.
+- **Status:** planned
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-01] single-service-architecture
+- **Notes:** n/a
+
+### Capability: admin-interface
+
+- **Purpose:** Offer operator-facing endpoints and UI for runtime control and observation.
+- **Scope:** `/admin`, `/stats`, config templates.
+- **Shape:** FastAPI surfaces expose status and allow configuration updates.
+- **Compatibility:** auth TBD; persists changes to `.env`.
+- **Status:** planned
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-01] single-service-architecture
+- **Notes:** n/a
+
+### Capability: direct-inference-integration
+
+- **Purpose:** Connect directly to local inference backends without a separate service layer.
+- **Scope:** orchestrator adapters, config entries.
+- **Shape:** orchestrator calls inference libraries in-process with fallback to HTTP adapters.
+- **Compatibility:** selectable via `.env` or `/config`.
+- **Status:** planned
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-01] single-service-architecture
+- **Notes:** n/a

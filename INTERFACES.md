@@ -50,3 +50,53 @@
 - **Change Log:**
   - 2025-08-19: return `Result` from helpers (#PR)
 
+### Surface: stats-endpoint
+- **Type:** API
+- **Purpose:** Expose runtime metrics for operators.
+- **Shape:**
+  - **Request/Input:** `GET /stats`
+  - **Response/Output:** `{uptime_ms, active_requests, adapters}`
+- **Idempotency/Retry:** read-only; safe to retry.
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** operator only
+- **Observability:** emits `stats_requested` event
+- **Failure Modes:** `503` when orchestrator not initialized
+- **Owner:** repo owner
+- **Code:** `Orpheus-FastAPI/app.py`
+- **Change Log:**
+  - 2025-09-01: documented endpoint
+
+### Surface: config-endpoint
+- **Type:** API
+- **Purpose:** Update active adapter or voice.
+- **Shape:**
+  - **Request/Input:** `POST /config` with `{adapter?, voice?}`
+  - **Response/Output:** `{adapter, voice}`
+- **Idempotency/Retry:** repeated calls override current state
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** operator only
+- **Observability:** emits `config_update` event
+- **Failure Modes:** `404` for unknown adapter
+- **Owner:** repo owner
+- **Code:** `Orpheus-FastAPI/app.py`
+- **Change Log:**
+  - 2025-09-01: documented endpoint
+
+### Surface: admin-endpoint
+- **Type:** API
+- **Purpose:** Serve administration UI and actions.
+- **Shape:**
+  - **Request/Input:** `GET /admin` (HTML), `POST /admin` actions
+  - **Response/Output:** HTML or `{status}`
+- **Idempotency/Retry:** `GET` is idempotent; actions may not be
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** operator only
+- **Observability:** access logged as `admin_access`
+- **Failure Modes:** `503` if service not ready
+- **Owner:** repo owner
+- **Code:** `Orpheus-FastAPI/app.py`
+- **Change Log:**
+  - 2025-09-01: documented endpoint
