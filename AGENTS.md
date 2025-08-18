@@ -222,6 +222,12 @@ Instead of brittle thresholds, give the agent **scenes** it must pass. Each scen
 
 Each scene produces a **timeline artifact** (JSON) and a **WAV**; a human can audition, and the CI can check coarse properties (continuous RMS, bounded zero-runs, monotonic timestamps).
 
+## Orpheus-FastAPI Single-Service
+
+- **Architecture:** The repo runs one FastAPI process that contains the orchestrator, adapter registry, streaming endpoints, and admin UI.
+- **Configuration:** Defaults load from `.env.example` and overrides from `.env` at the repo root. The `/config` and `/admin` surfaces mutate state and persist updates.
+- **Scene Expectations:** Add scenes under `SCENES/` verifying cold start, config reload via `/config`, and availability of `/stats`.
+
 ---
 
 # Deliverables for the coding agents (what to build)
