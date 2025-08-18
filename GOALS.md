@@ -91,7 +91,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Scope:** `Orpheus-FastAPI/app.py`, adapter registry.
 - **Shape:** single FastAPI process coordinates adapters and exposes streaming endpoints.
 - **Compatibility:** configured through `.env` and `/config`; no migrations yet.
-- **Status:** planned
+ - **Status:** active
 - **Owner:** repo owner
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-01] single-service-architecture
@@ -103,7 +103,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Scope:** `/admin`, `/stats`, config templates.
 - **Shape:** FastAPI surfaces expose status and allow configuration updates.
 - **Compatibility:** auth TBD; persists changes to `.env`.
-- **Status:** planned
+- **Status:** active
 - **Owner:** repo owner
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-01] single-service-architecture

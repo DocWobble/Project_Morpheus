@@ -134,3 +134,20 @@
 - **Code:** `Morpheus_Client/api/server.py`
 - **Change Log:**
   - 2025-08-18: documented endpoint
+
+### Surface: client-admin-static
+- **Type:** Static
+- **Purpose:** Serve admin interface assets.
+- **Shape:**
+  - **Request/Input:** `GET /admin/{asset}`
+  - **Response/Output:** HTML/CSS/JS
+- **Idempotency/Retry:** read-only; safe to retry.
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** operator only
+- **Observability:** none
+- **Failure Modes:** `404` for missing asset
+- **Owner:** repo owner
+- **Code:** `Morpheus_Client/api/server.py`
+- **Change Log:**
+  - 2025-09-02: mounted admin static assets

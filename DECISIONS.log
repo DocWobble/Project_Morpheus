@@ -110,3 +110,25 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** revisit when services consolidate.
 - **Status:** active
 - **Links:** goal morpheus-client-introspection
+### [2025-09-02] admin-static-mount
+
+- **Context:** The admin TTS UI lived only in Orpheus-FastAPI and wasn't available through the consolidated client.
+- **Decision:** Copy the template and favicon into `Morpheus_Client/admin` and serve them via `/admin`.
+- **Alternatives:** Continue relying on Orpheus-FastAPI for admin access.
+- **Trade-offs:** Duplicates assets and requires future sync.
+- **Scope:** `Morpheus_Client/admin`, `Morpheus_Client/api/server.py`, `Morpheus_Client/config.py`.
+- **Impact:** Admin interface assets are accessible from the client service.
+- **TTL / Review:** revisit when UI unification completes.
+- **Status:** active
+- **Links:** goal admin-interface
+### [2025-09-02] admin-favicon-svg
+
+- **Context:** Binary favicon blocked pull request generation.
+- **Decision:** Replace `.ico` with a text-based `favicon.svg` and update the admin template.
+- **Alternatives:** Keep binary icon and accept PR tooling limitation.
+- **Trade-offs:** Simplified icon; avoids binary files in repository.
+- **Scope:** `Morpheus_Client/admin/tts.html`, `Morpheus_Client/admin/static/favicon.svg`.
+- **Impact:** Admin interface assets remain mergeable while providing a visual icon.
+- **TTL / Review:** revisit when branding assets stabilize.
+- **Status:** active
+- **Links:** goal admin-interface
