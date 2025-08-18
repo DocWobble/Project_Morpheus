@@ -89,3 +89,14 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit when authentication flow changes.
 - **Status:** ACTIVE
 - **Links:** goal result-based-login
+### [2025-09-02] central-config-module
+
+- **Context:** configuration helpers were duplicated across `main.py` and `Orpheus-FastAPI/app.py`.
+- **Decision:** centralize env file utilities and config API routes in `Morpheus_Client.config`.
+- **Alternatives:** keep separate implementations in each module.
+- **Trade-offs:** introduces a new package; minor import overhead.
+- **Scope:** `Morpheus_Client/config.py`, `main.py`, `Orpheus-FastAPI/app.py`.
+- **Impact:** shared configuration logic and API surface; easier future reuse.
+- **TTL / Review:** revisit when configuration loading changes.
+- **Status:** active
+- **Links:** n/a

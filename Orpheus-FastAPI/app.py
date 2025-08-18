@@ -8,35 +8,11 @@ import asyncio
 from datetime import datetime
 from typing import List, Optional
 from dotenv import load_dotenv
-
-# Function to ensure .env file exists
-def ensure_env_file_exists():
-    """Create a .env file from defaults and OS environment variables"""
-    if not os.path.exists(".env") and os.path.exists(".env.example"):
-        try:
-            # 1. Create default env dictionary from .env.example
-            default_env = {}
-            with open(".env.example", "r") as example_file:
-                for line in example_file:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        key = line.split("=")[0].strip()
-                        default_env[key] = line.split("=", 1)[1].strip()
-
-            # 2. Override defaults with Docker environment variables if they exist
-            final_env = default_env.copy()
-            for key in default_env:
-                if key in os.environ:
-                    final_env[key] = os.environ[key]
-
-            # 3. Write dictionary to .env file in env format
-            with open(".env", "w") as env_file:
-                for key, value in final_env.items():
-                    env_file.write(f"{key}={value}\n")
-                    
-            print("✅ Created default .env file from .env.example and environment variables.")
-        except Exception as e:
-            print(f"⚠️ Error creating default .env file: {e}")
+from Morpheus_Client.config import (
+    ensure_env_file_exists,
+    get_current_config,
+    router as config_router,
+)
 
 # Ensure .env file exists before loading environment variables
 ensure_env_file_exists()
@@ -168,6 +144,8 @@ app = FastAPI(
     description="High-performance Text-to-Speech server using Orpheus-FASTAPI",
     version="1.0.0"
 )
+
+app.include_router(config_router)
 
 # We'll use FastAPI's built-in startup complete mechanism
 # The log message "INFO:     Application startup complete." indicates
@@ -373,37 +351,6 @@ async def web_ui(request: Request):
         }
     )
 
-@app.get("/get_config")
-async def get_config():
-    """Get current configuration from .env file or defaults"""
-    config = get_current_config()
-    return JSONResponse(content=config)
-
-@app.post("/save_config")
-async def save_config(request: Request):
-    """Save configuration to .env file"""
-    data = await request.json()
-    
-    # Convert values to proper types
-    for key, value in data.items():
-        if key in ["ORPHEUS_MAX_TOKENS", "ORPHEUS_API_TIMEOUT", "ORPHEUS_PORT", "ORPHEUS_SAMPLE_RATE"]:
-            try:
-                data[key] = str(int(value))
-            except (ValueError, TypeError):
-                pass
-        elif key in ["ORPHEUS_TEMPERATURE", "ORPHEUS_TOP_P"]:  # Removed ORPHEUS_REPETITION_PENALTY since it's hardcoded now
-            try:
-                data[key] = str(float(value))
-            except (ValueError, TypeError):
-                pass
-    
-    # Write configuration to .env file
-    with open(".env", "w") as f:
-        for key, value in data.items():
-            f.write(f"{key}={value}\n")
-    
-    return JSONResponse(content={"status": "ok", "message": "Configuration saved successfully. Restart server to apply changes."})
-
 @app.post("/restart_server")
 async def restart_server():
     """Restart the server by touching a file that triggers Uvicorn's reload"""
@@ -426,38 +373,6 @@ async def restart_server():
     # Return success response
     return JSONResponse(content={"status": "ok", "message": "Server is restarting. Please wait a moment..."})
 
-def get_current_config():
-    """Read current configuration from .env.example and .env files"""
-    # Default config from .env.example
-    default_config = {}
-    if os.path.exists(".env.example"):
-        with open(".env.example", "r") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    default_config[key] = value
-    
-    # Current config from .env
-    current_config = {}
-    if os.path.exists(".env"):
-        with open(".env", "r") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    current_config[key] = value
-    
-    # Merge configs, with current taking precedence
-    config = {**default_config, **current_config}
-    
-    # Add current environment variables
-    for key in config:
-        env_value = os.environ.get(key)
-        if env_value is not None:
-            config[key] = env_value
-    
-    return config
 
 @app.post("/web/")
 async def generate_from_web(
