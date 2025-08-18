@@ -100,3 +100,13 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** revisit when configuration loading changes.
 - **Status:** active
 - **Links:** n/a
+### [2025-08-18] morpheus-client-endpoints
+- **Context:** Morpheus Client lacked introspection APIs for voices and adapters.
+- **Decision:** Add `/v1/audio/voices` and `/adapters` endpoints reusing Orpheus-FastAPI logic.
+- **Alternatives:** Rely solely on Orpheus-FastAPI for capability discovery.
+- **Trade-offs:** Duplicates minimal logic; adds another API surface to maintain.
+- **Scope:** `Morpheus_Client/api/server.py`, `INTERFACES.md`.
+- **Impact:** Clients can query available voices and adapter capabilities directly.
+- **TTL / Review:** revisit when services consolidate.
+- **Status:** active
+- **Links:** goal morpheus-client-introspection

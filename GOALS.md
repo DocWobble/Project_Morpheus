@@ -132,3 +132,14 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-02] central-config-module
 - **Notes:** n/a
+
+### Capability: morpheus-client-introspection
+- **Purpose:** Allow clients to discover available voices and adapter capabilities.
+- **Scope:** `Morpheus_Client/api/server.py`, `INTERFACES.md`
+- **Shape:** `GET /v1/audio/voices` → `{status, voices}`; `GET /adapters` → `{adapter_name: descriptor}`
+- **Compatibility:** read-only; no flags
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** n/a
+- **Linked Decisions:** morpheus-client-endpoints
+- **Notes:** none
