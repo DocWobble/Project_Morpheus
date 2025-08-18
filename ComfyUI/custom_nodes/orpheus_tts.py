@@ -4,14 +4,14 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 try:
-    from morpheus_tts.client import Client
-    from morpheus_tts.tts_engine import DEFAULT_VOICE
+    from Morpheus_Client.client import Client
+    from Morpheus_Client.tts_engine import DEFAULT_VOICE
     _import_error = None
 except Exception as e:  # pragma: no cover - import failure is logged
     Client = None
     DEFAULT_VOICE = ""
     _import_error = e
-    logging.exception("Failed to import morpheus_tts")
+    logging.exception("Failed to import Morpheus_Client")
 
 
 class OrpheusTTSNode:
@@ -35,7 +35,7 @@ class OrpheusTTSNode:
 
     def generate(self, text: str, voice: str, base_url: str):
         if Client is None:
-            msg = f"morpheus_tts not available: {_import_error}"
+            msg = f"Morpheus_Client not available: {_import_error}"
             logging.error(msg)
             raise RuntimeError(msg)
 

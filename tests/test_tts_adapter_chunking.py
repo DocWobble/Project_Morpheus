@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Stub out optional dependencies that require system libraries
 sys.modules.setdefault("sounddevice", types.SimpleNamespace())
 
-from morpheus_tts.tts_engine.orpheus_local import SAMPLE_RATE, TTSAdapter
+from Morpheus_Client.tts_engine.orpheus_local import SAMPLE_RATE, TTSAdapter
 
 
 class DummyAdapter(TTSAdapter):

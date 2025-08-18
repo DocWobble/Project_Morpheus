@@ -9,8 +9,8 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 
 try:
-    from morpheus_tts.client import Client
-    from morpheus_tts.tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
+    from Morpheus_Client.client import Client
+    from Morpheus_Client.tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
     _client = Client()
     _import_error = None
 except Exception as e:  # pragma: no cover - import failure is logged
@@ -18,7 +18,7 @@ except Exception as e:  # pragma: no cover - import failure is logged
     AVAILABLE_VOICES = []
     DEFAULT_VOICE = ""
     _import_error = str(e)
-    logging.exception("Failed to import morpheus_tts")
+    logging.exception("Failed to import Morpheus_Client")
 
 params = {
     "display_name": "Orpheus TTS",
@@ -28,7 +28,7 @@ params = {
 
 def _speak(text: str, voice: str):
     if _client is None:
-        msg = f"morpheus_tts not available: {_import_error}"
+        msg = f"Morpheus_Client not available: {_import_error}"
         logging.error(msg)
         return (0, np.empty(0, dtype=np.int16)), msg
 
@@ -53,7 +53,7 @@ def ui() -> None:
     with gr.Column():
         log = gr.Textbox(label="Log", lines=4, value="", interactive=False)
         if _client is None:
-            gr.Markdown(f"Failed to load morpheus_tts: {_import_error}")
+            gr.Markdown(f"Failed to load Morpheus_Client: {_import_error}")
         else:
             api_url = _client.base_url.rstrip("/")
             gr.Markdown(

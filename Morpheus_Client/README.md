@@ -1,26 +1,27 @@
-# Morpheus TTS
+# Morpheus Client
 
-`morpheus_tts` bundles the streaming orchestrator and TTS engine into a single
-package with a tiny FastAPI server.  External scripts can either start the
-server in-process or talk to a running instance using the bundled client.
+`Morpheus_Client` bundles the streaming orchestrator, TTS engine, and admin API
+into a single package with a tiny FastAPI server.  External scripts can either
+start the server in-process or talk to a running instance using the bundled
+client.
 
 ## Starting the server
 
 ```python
-import morpheus_tts
+import Morpheus_Client
 
-# Launches uvicorn and serves the API on 0.0.0.0:5005 by default
-morpheus_tts.start_server()
+# Launches uvicorn and serves the API and admin UI on 0.0.0.0:5005 by default
+Morpheus_Client.start_server()
 ```
 
 ## Using the client
 
-The :class:`morpheus_tts.Client` provides helpers for both REST and WebSocket
+The :class:`Morpheus_Client.Client` provides helpers for both REST and WebSocket
 streaming.
 
 ```python
 import asyncio
-from morpheus_tts import Client
+from Morpheus_Client import Client
 
 async def main():
     client = Client("http://localhost:5005")
