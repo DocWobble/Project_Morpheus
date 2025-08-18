@@ -120,3 +120,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-01] single-service-architecture
 - **Notes:** n/a
+
+### Capability: shared-config-module
+
+- **Purpose:** Deduplicate environment file utilities across services.
+- **Scope:** `Morpheus_Client.config`, `main.py`, `Orpheus-FastAPI/app.py`.
+- **Shape:** All components load and persist configuration through a single module.
+- **Compatibility:** uses existing `.env` format; no migrations.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-02] central-config-module
+- **Notes:** n/a
