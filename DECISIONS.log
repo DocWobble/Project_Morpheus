@@ -1,0 +1,80 @@
+# DECISIONS.log
+
+> ADR-style, but ruthless. One entry per consequential choice.  
+> Append-only; if superseded, add `Superseded-By:` and status `REPLACED`.
+
+## Entry Template
+
+### [YYYY-MM-DD] <short handle>
+
+- **Context:** <why a choice was necessary; constraints at play>
+- **Decision:** <the chosen path in one or two sentences>
+- **Alternatives:** <bulleted, only those genuinely considered>
+- **Trade-offs:** <what we accept to get the outcome>
+- **Scope:** <surfaces or modules affected>
+- **Impact:** <capabilities enabled/disabled; risks introduced>
+- **TTL / Review:** <when to re-evaluate, if applicable>
+- **Status:** ACTIVE | REPLACED | REJECTED | BLOCKED
+- **Links:** <PRs, scenes, interface entries, goal names>
+
+_(New entries go on top. Keep each under ~20 lines.)_
+### [2025-08-18] decisions-log-canonical
+
+- **Context:** Repository contained `DECISIONS.md` while documentation referenced `DECISIONS.log`, causing inconsistency.
+- **Decision:** Rename the decision log to `DECISIONS.log` and update references for a single canonical filename.
+- **Alternatives:** Keep `DECISIONS.md` and adjust all docs.
+- **Trade-offs:** `.log` extension receives less automatic Markdown tooling.
+- **Scope:** repository metadata files.
+- **Impact:** Eliminates confusion about where to record decisions.
+- **TTL / Review:** Revisit if extension hampers collaboration.
+- **Status:** ACTIVE
+- **Links:** this PR
+
+### [2025-08-30] cli-exitcode-refactor
+
+- **Context:** Subcommands invoked std::process::exit directly, complicating error handling and testing.
+- **Decision:** Return ExitCode from `cli_main` and exit once in `main`.
+- **Alternatives:** Keep multiple exit points within subcommands.
+- **Trade-offs:** Requires threading exit codes through call sites.
+- **Scope:** `codex-rs/cli`, `codex-rs/arg0`.
+- **Impact:** Centralizes process termination and enables integration tests to assert exact exit codes.
+- **TTL / Review:** Revisit if CLI architecture changes.
+- **Status:** ACTIVE
+- **Links:** goal cli-exit-code-centralization
+
+
+### [2025-08-29] cli-path-dedup
+
+- **Context:** Repeated CLI launches added duplicate directories to `PATH` causing unbounded growth.
+- **Decision:** Skip directories already present in `PATH` when computing the updated value.
+- **Alternatives:** Keep existing behavior and allow duplicates.
+- **Trade-offs:** Slight increase in startup logic complexity.
+- **Scope:** `codex-cli/bin/codex.js`.
+- **Impact:** CLI startup is idempotent with respect to environment `PATH`.
+- **TTL / Review:** Revisit if environment handling changes.
+- **Status:** ACTIVE
+- **Links:** goal cli-path-deduplication; `codex-cli/test/path.test.js`
+
+### [2025-08-17] missing-sandbox-error
+
+- **Context:** `codex-cli` panicked when the `codex-linux-sandbox` binary was missing.
+- **Decision:** Return a descriptive error instead of panicking so users understand the failure.
+- **Alternatives:** Keep using `.expect` and crash.
+- **Trade-offs:** Slightly more code; reliance on error handling.
+- **Scope:** `codex-rs/cli` sandbox command path.
+- **Impact:** CLI fails gracefully when Landlock sandbox is requested without the binary.
+- **TTL / Review:** Revisit if sandbox architecture changes.
+- **Status:** ACTIVE
+- **Links:** See PR for missing sandbox executable handling.
+
+### [2025-08-19] login-result-handling
+
+- **Context:** Login helpers exited the process directly, making reuse and testing difficult.
+- **Decision:** Return `Result`/status enums from login helpers and manage exits in `main.rs`.
+- **Alternatives:** Keep process termination inside helper functions.
+- **Trade-offs:** More boilerplate in the caller; functions now expose additional types.
+- **Scope:** `codex-rs/cli` login module and main entrypoint.
+- **Impact:** Enables programmatic control over login flows and clearer testing.
+- **TTL / Review:** Revisit when authentication flow changes.
+- **Status:** ACTIVE
+- **Links:** goal result-based-login
