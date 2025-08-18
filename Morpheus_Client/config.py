@@ -80,14 +80,14 @@ def save_config(data: Dict[str, str]) -> None:
             f.write(f"{key}={value}\n")
 
 
-@router.get("/get_config")
+@router.get("/config")
 async def get_config_route():
     """Return current configuration as JSON."""
     config = get_current_config()
     return JSONResponse(content=config)
 
 
-@router.post("/save_config")
+@router.post("/config")
 async def save_config_route(request: Request):
     """Save provided configuration to .env."""
     data = await request.json()

@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from Morpheus_Client.config import router as config_router, ensure_env_file_exists
 from morpheus_tts.tts_engine import AVAILABLE_VOICES
@@ -12,6 +14,11 @@ load_dotenv(override=True)
 
 app = FastAPI()
 app.include_router(config_router)
+app.mount(
+    "/admin",
+    StaticFiles(directory=Path(__file__).resolve().parent.parent / "admin", html=True),
+    name="admin",
+)
 
 
 @app.get("/v1/audio/voices")
