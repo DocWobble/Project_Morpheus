@@ -100,3 +100,37 @@
 - **Code:** `Orpheus-FastAPI/app.py`
 - **Change Log:**
   - 2025-09-01: documented endpoint
+
+### Surface: client-voices-endpoint
+- **Type:** API
+- **Purpose:** List available synthesis voices.
+- **Shape:**
+  - **Request/Input:** `GET /v1/audio/voices`
+  - **Response/Output:** `{status, voices}`
+- **Idempotency/Retry:** read-only; safe to retry.
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** public
+- **Observability:** none
+- **Failure Modes:** `404` when no voices available
+- **Owner:** repo owner
+- **Code:** `Morpheus_Client/api/server.py`
+- **Change Log:**
+  - 2025-08-18: documented endpoint
+
+### Surface: client-adapters-endpoint
+- **Type:** API
+- **Purpose:** Expose capability descriptors for registered adapters.
+- **Shape:**
+  - **Request/Input:** `GET /adapters`
+  - **Response/Output:** `{adapter_name: descriptor}`
+- **Idempotency/Retry:** read-only; safe to retry.
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** public
+- **Observability:** none
+- **Failure Modes:** none
+- **Owner:** repo owner
+- **Code:** `Morpheus_Client/api/server.py`
+- **Change Log:**
+  - 2025-08-18: documented endpoint
