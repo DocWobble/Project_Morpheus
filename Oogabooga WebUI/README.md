@@ -76,7 +76,7 @@ If you ever need to install something manually in the `installer_files` environm
 
 ### Orpheus TTS extension
 
-Install the `morpheus_tts` dependency before enabling this extension:
+Install the `Morpheus_Client` dependency before enabling this extension:
 
 ```bash
 pip install -r extensions/orpheus_tts/requirements.txt

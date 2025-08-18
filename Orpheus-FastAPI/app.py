@@ -27,21 +27,21 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import json
 
-from morpheus_tts.tts_engine import (
+from Morpheus_Client.tts_engine import (
     AVAILABLE_VOICES,
     DEFAULT_VOICE,
     VOICE_TO_LANGUAGE,
     AVAILABLE_LANGUAGES,
 )
-from morpheus_tts.tts_engine.inference import SAMPLE_RATE
-from morpheus_tts.tts_engine.adapter_registry import (
+from Morpheus_Client.tts_engine.inference import SAMPLE_RATE
+from Morpheus_Client.tts_engine.adapter_registry import (
     VoiceSchema,
     registry as adapter_registry,
 )
-from morpheus_tts.orchestrator.core import Orchestrator
-from morpheus_tts.orchestrator.buffer import PlaybackBuffer
-from morpheus_tts.orchestrator.chunk_ladder import ChunkLadder
-from morpheus_tts.orchestrator.stitcher import stitch_chunks
+from Morpheus_Client.orchestrator.core import Orchestrator
+from Morpheus_Client.orchestrator.buffer import PlaybackBuffer
+from Morpheus_Client.orchestrator.chunk_ladder import ChunkLadder
+from Morpheus_Client.orchestrator.stitcher import stitch_chunks
 import struct
 import wave
 

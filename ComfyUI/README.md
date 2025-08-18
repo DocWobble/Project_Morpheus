@@ -1,6 +1,6 @@
 # ComfyUI integration
 
-The `orpheus_tts` custom node depends on the `morpheus_tts` package.
+The `orpheus_tts` custom node depends on the `Morpheus_Client` package.
 
 Install the dependency:
 

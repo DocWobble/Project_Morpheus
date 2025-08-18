@@ -24,8 +24,8 @@ def _make_dummy_snac(called):
 
 def _load_speechpipe():
     spec = importlib.util.spec_from_file_location(
-        "morpheus_tts.tts_engine.speechpipe",
-        Path(__file__).resolve().parents[1] / "morpheus_tts" / "tts_engine" / "speechpipe.py",
+        "Morpheus_Client.tts_engine.speechpipe",
+        Path(__file__).resolve().parents[1] / "Morpheus_Client" / "tts_engine" / "speechpipe.py",
     )
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -41,7 +41,7 @@ def test_snac_uses_env_path(monkeypatch, tmp_path):
     dummy_path.mkdir()
     monkeypatch.setenv("ORPHEUS_SNAC_PATH", str(dummy_path))
 
-    sys.modules.pop("morpheus_tts.tts_engine.speechpipe", None)
+    sys.modules.pop("Morpheus_Client.tts_engine.speechpipe", None)
     _load_speechpipe()
 
     assert called["name"] == str(dummy_path)
@@ -53,7 +53,7 @@ def test_snac_uses_default_repo(monkeypatch):
     monkeypatch.setitem(sys.modules, "snac", dummy_module)
     monkeypatch.delenv("ORPHEUS_SNAC_PATH", raising=False)
 
-    sys.modules.pop("morpheus_tts.tts_engine.speechpipe", None)
+    sys.modules.pop("Morpheus_Client.tts_engine.speechpipe", None)
     _load_speechpipe()
 
     assert called["name"] == "hubertsiuzdak/snac_24khz"

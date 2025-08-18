@@ -1,5 +1,5 @@
 """Barge-In scenario."""
-from morpheus_tts.orchestrator.adapter import AudioChunk, TTSAdapter
+from Morpheus_Client.orchestrator.adapter import AudioChunk, TTSAdapter
 
 from .utils import run_scene
 

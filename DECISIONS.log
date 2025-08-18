@@ -105,7 +105,7 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Decision:** Add `/v1/audio/voices` and `/adapters` endpoints reusing Orpheus-FastAPI logic.
 - **Alternatives:** Rely solely on Orpheus-FastAPI for capability discovery.
 - **Trade-offs:** Duplicates minimal logic; adds another API surface to maintain.
-- **Scope:** `Morpheus_Client/api/server.py`, `INTERFACES.md`.
+- **Scope:** `Morpheus_Client/server.py`, `INTERFACES.md`.
 - **Impact:** Clients can query available voices and adapter capabilities directly.
 - **TTL / Review:** revisit when services consolidate.
 - **Status:** active
@@ -116,7 +116,7 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Decision:** Copy the template and favicon into `Morpheus_Client/admin` and serve them via `/admin`.
 - **Alternatives:** Continue relying on Orpheus-FastAPI for admin access.
 - **Trade-offs:** Duplicates assets and requires future sync.
-- **Scope:** `Morpheus_Client/admin`, `Morpheus_Client/api/server.py`, `Morpheus_Client/config.py`.
+- **Scope:** `Morpheus_Client/admin`, `Morpheus_Client/server.py`, `Morpheus_Client/config.py`.
 - **Impact:** Admin interface assets are accessible from the client service.
 - **TTL / Review:** revisit when UI unification completes.
 - **Status:** active
@@ -132,3 +132,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** revisit when branding assets stabilize.
 - **Status:** active
 - **Links:** goal admin-interface
+
+### [2025-09-05] morpheus-client-rename
+
+- **Context:** The codebase exposed `morpheus_tts` for core TTS functions while the admin/API lived under `Morpheus_Client`, leading to split imports.
+- **Decision:** Rename `morpheus_tts` to `Morpheus_Client` and merge the admin and TTS server under one package with a single `start_server` entrypoint.
+- **Alternatives:** Keep dual packages and bridge imports manually.
+- **Trade-offs:** External references must update to the new package name.
+- **Scope:** `Morpheus_Client/server.py`, `main.py`, `scenes/*`, `tests/*`.
+- **Impact:** Unified import path `Morpheus_Client.*` and consolidated API/admin launch.
+- **TTL / Review:** review after first release.
+- **Status:** active
+- **Links:** goal morpheus-client-introspection

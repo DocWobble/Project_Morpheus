@@ -114,7 +114,7 @@
 - **Observability:** none
 - **Failure Modes:** `404` when no voices available
 - **Owner:** repo owner
-- **Code:** `Morpheus_Client/api/server.py`
+- **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-08-18: documented endpoint
 
@@ -131,7 +131,7 @@
 - **Observability:** none
 - **Failure Modes:** none
 - **Owner:** repo owner
-- **Code:** `Morpheus_Client/api/server.py`
+- **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-08-18: documented endpoint
 
@@ -148,6 +148,6 @@
 - **Observability:** none
 - **Failure Modes:** `404` for missing asset
 - **Owner:** repo owner
-- **Code:** `Morpheus_Client/api/server.py`
+- **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-02: mounted admin static assets

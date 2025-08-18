@@ -1,7 +1,7 @@
 """Scenario harness for open-ended streaming tests.
 
 This package exposes individual scene modules used by the test suite.  Each
-scene is responsible for driving a mock :class:`~morpheus_tts.orchestrator.adapter.TTSAdapter`
+scene is responsible for driving a mock :class:`~Morpheus_Client.orchestrator.adapter.TTSAdapter`
 and writing a timeline JSON alongside a WAV artifact so the results can be
 audited by humans and machines.
 

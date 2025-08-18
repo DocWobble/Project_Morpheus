@@ -6,11 +6,11 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from morpheus_tts.orchestrator.adapter import AudioChunk, TTSAdapter
-from morpheus_tts.orchestrator.buffer import PlaybackBuffer
-from morpheus_tts.orchestrator.chunk_ladder import ChunkLadder
-from morpheus_tts.orchestrator.core import Orchestrator
-from morpheus_tts.orchestrator.ring_buffer import RingBuffer
+from Morpheus_Client.orchestrator.adapter import AudioChunk, TTSAdapter
+from Morpheus_Client.orchestrator.buffer import PlaybackBuffer
+from Morpheus_Client.orchestrator.chunk_ladder import ChunkLadder
+from Morpheus_Client.orchestrator.core import Orchestrator
+from Morpheus_Client.orchestrator.ring_buffer import RingBuffer
 
 
 class DummyAdapter(TTSAdapter):

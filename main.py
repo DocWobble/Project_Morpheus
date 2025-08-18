@@ -7,7 +7,7 @@ load_dotenv(override=True)
 
 
 if __name__ == "__main__":
-    from morpheus_tts import start_server
+    from Morpheus_Client import start_server
 
     host = os.getenv("ORPHEUS_HOST", "0.0.0.0")
     port = int(os.getenv("ORPHEUS_PORT", "5005"))

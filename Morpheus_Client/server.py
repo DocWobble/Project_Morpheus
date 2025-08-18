@@ -1,16 +1,24 @@
 import struct
+from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .tts_engine import DEFAULT_VOICE
+from .config import ensure_env_file_exists, router as config_router
+from .tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
 from .tts_engine.inference import SAMPLE_RATE
 from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
 from .orchestrator.core import Orchestrator
 from .orchestrator.buffer import PlaybackBuffer
 from .orchestrator.chunk_ladder import ChunkLadder
 from .orchestrator.stitcher import stitch_chunks
+
+# Ensure environment is initialized
+ensure_env_file_exists()
+load_dotenv(override=True)
 
 
 def riff_header(sample_rate: int = SAMPLE_RATE) -> bytes:
@@ -89,6 +97,12 @@ async def orchestrated_pcm_stream(
 
 # FastAPI application
 app = FastAPI(title="Core TTS Service")
+app.include_router(config_router)
+app.mount(
+    "/admin",
+    StaticFiles(directory=Path(__file__).resolve().parent / "admin", html=True),
+    name="admin",
+)
 
 
 class SpeechRequest(BaseModel):
@@ -120,6 +134,14 @@ async def create_speech_api(request: SpeechRequest):
         wav_streamer(pcm_stream, sample_rate=SAMPLE_RATE),
         media_type="audio/wav",
     )
+
+
+@app.get("/v1/audio/voices")
+async def list_voices():
+    """Return list of available voices."""
+    if not AVAILABLE_VOICES:
+        raise HTTPException(status_code=404, detail="No voices available")
+    return JSONResponse(content={"status": "ok", "voices": AVAILABLE_VOICES})
 
 
 @app.websocket("/ws/tts")
@@ -179,7 +201,7 @@ async def barge_in_ws(websocket: WebSocket):
 
 
 def start_server(host: str = "0.0.0.0", port: int = 5005) -> None:
-    """Start the Morpheus TTS FastAPI server using uvicorn."""
+    """Start the Morpheus client API and admin server using uvicorn."""
     import uvicorn
 
     uvicorn.run(app, host=host, port=port)

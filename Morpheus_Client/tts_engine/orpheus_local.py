@@ -6,7 +6,7 @@ instance.  The underlying generator may yield PCM segments of arbitrary
 size, so we maintain an internal buffer and slice the data to honour the
 ``chunk_size`` requested by the orchestrator.  ``chunk_size`` is the
 maximum number of PCM bytes that a returned
-:class:`~morpheus_tts.orchestrator.adapter.AudioChunk` may contain.
+:class:`~Morpheus_Client.orchestrator.adapter.AudioChunk` may contain.
 This keeps the adapter agnostic to the sample rate while guaranteeing
 bounded chunk sizes.
 """
