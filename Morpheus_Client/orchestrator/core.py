@@ -12,6 +12,7 @@ import base64
 import json
 import logging
 import time
+from pathlib import Path
 from typing import AsyncGenerator, Callable, Tuple
 
 from .adapter import AudioChunk, TTSAdapter
@@ -40,10 +41,27 @@ class Orchestrator:
         self.comfort_band = comfort_band
         self.ring = ring
         self._barge_in = asyncio.Event()
+        self.timeline: list[dict] = []
+
+    def _record(self, stage: str, start: float, result: str) -> None:
+        """Append a timing event to the in-memory timeline."""
+        duration_ms = (time.perf_counter() - start) * 1000.0
+        self.timeline.append({"stage": stage, "duration_ms": duration_ms, "result": result})
 
     def signal_barge_in(self) -> None:
         """Notify the orchestrator that the current utterance was interrupted."""
         self._barge_in.set()
+
+    def save_timeline(self, path: str | Path) -> None:
+        """Persist current timeline and basic metrics to ``path``."""
+        payload = {
+            "events": self.timeline,
+            "metrics": {"events": len(self.timeline)},
+        }
+        out = Path(path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with open(out, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2)
 
     async def stream(
         self, on_event: Callable[[dict], None] | None = None
@@ -66,6 +84,7 @@ class Orchestrator:
             start = time.perf_counter()
             chunk = await self.adapter.pull(window)
             render_ms = (time.perf_counter() - start) * 1000.0
+            self._record("adapter_pull", start, "eos" if chunk.eos else "ok")
 
             log_entry = {
                 "chunk_id": chunk_id,
@@ -89,8 +108,10 @@ class Orchestrator:
             self.ladder.adapt(self.buffer.depth_ms, self.comfort_band)
             chunk_id += 1
         if self._barge_in.is_set():
+            start = time.perf_counter()
             await self.adapter.reset()
             self.buffer.reset()
             if self.ring is not None:
                 self.ring.reset()
             self._barge_in.clear()
+            self._record("barge_in_reset", start, "ok")

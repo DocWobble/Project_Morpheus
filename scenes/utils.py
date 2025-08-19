@@ -67,4 +67,8 @@ def run_scene(scene_name: str, adapter, tmp_path: Path, barge_in_at: int | None 
     with open(timeline_path, "w", encoding="utf-8") as fh:
         json.dump(timeline, fh, indent=2)
 
+    # Persist orchestrator timeline + metrics to canonical artifact path
+    artifact_path = Path("SCENES/_artifacts/timeline.json")
+    orch.save_timeline(artifact_path)
+
     return timeline_path, wav_path, timeline
