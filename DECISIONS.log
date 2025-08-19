@@ -18,6 +18,18 @@
 - **Links:** <PRs, scenes, interface entries, goal names>
 
 _(New entries go on top. Keep each under ~20 lines.)_
+### [2025-09-21] fastapi-migration
+
+- **Context:** Docs and configs still referenced FastAPI though the service now runs on a lightweight ASGI stack.
+- **Decision:** Purge FastAPI references and document the single ASGI service exposing `/v1/audio/speech`, `/config`, `/stats`, and `/admin`.
+- **Alternatives:** Keep FastAPI terminology and partial code paths.
+- **Trade-offs:** Lose FastAPI conveniences like automatic docs and dependency injection.
+- **Scope:** `AGENTS.md`, `GOALS.md`, `README.md`, `INTERFACES.md`.
+- **Impact:** Aligns repository language with actual architecture; reduces confusion.
+- **TTL / Review:** Revisit if a higher-level framework is reintroduced.
+- **Status:** ACTIVE
+- **Links:** goals standalone-orchestrator, admin-interface; interfaces speech-endpoint, config-endpoint, stats-endpoint, admin-endpoint
+
 ### [2025-09-19] start-entrypoint
 
 - **Context:** Simplify local launch and persist config in home directory.
