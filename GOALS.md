@@ -38,6 +38,18 @@
 
 _(Append new capabilities below using the format above. Keep the list curated; collapse removed items to a brief tombstone if noisy.)_
 
+### Capability: streaming-telemetry
+
+- **Purpose:** Expose orchestrator runtime stages for live monitoring.
+- **Scope:** `Morpheus_Client/orchestrator`, `/stats` API, timeline artifacts.
+- **Shape:** `{stage, duration_ms, result}` events appended; `/stats` returns current timeline; artifacts saved to `SCENES/_artifacts`.
+- **Compatibility:** additive; resets on process restart.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_scenes.py::test_breathing_room`
+- **Linked Decisions:** orchestrator-timeline
+- **Notes:** timeline growth is unbounded during run.
+
 ### Capability: graceful-missing-sandbox
 
 - **Purpose:** Ensure the CLI reports a clear error when the `codex-linux-sandbox` binary is absent.

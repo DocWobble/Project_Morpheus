@@ -151,3 +151,36 @@
 - **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-02: mounted admin static assets
+
+### Surface: timeline-events
+- **Type:** Event
+- **Purpose:** Structured telemetry of orchestrator stages.
+- **Shape:**
+  - **Event:** `{stage: str, duration_ms: float, result: str}`
+- **Idempotency/Retry:** append-only; no retry.
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** internal
+- **Observability:** persisted to `SCENES/_artifacts/timeline.json`
+- **Failure Modes:** events lost if process crashes
+- **Owner:** repo owner
+- **Code:** `Morpheus_Client/orchestrator/core.py`
+- **Change Log:**
+  - 2025-09-08: initial schema
+
+### Surface: api-stats
+- **Type:** API
+- **Purpose:** Retrieve in-memory timeline for live monitoring.
+- **Shape:**
+  - **Request/Input:** `GET /stats`
+  - **Response/Output:** `{ "timeline": [<timeline-events>] }`
+- **Idempotency/Retry:** safe to retry
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** operator
+- **Observability:** emits timeline-events
+- **Failure Modes:** empty list if orchestrator idle
+- **Owner:** repo owner
+- **Code:** `Orpheus-FastAPI/app.py`
+- **Change Log:**
+  - 2025-09-08: endpoint added
