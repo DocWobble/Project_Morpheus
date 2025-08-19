@@ -7,6 +7,7 @@ directory like a normal unit test.
 """
 
 import os
+import json
 from pathlib import Path
 
 import pytest
@@ -39,6 +40,11 @@ def test_breathing_room(artifact_dir):
     assert timeline[0]["chunk_id"] == 0
     assert "token_window" in timeline[0]
     assert "render_ms" in timeline[0]
+    global_path = Path("SCENES/_artifacts/timeline.json")
+    assert global_path.exists()
+    with open(global_path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    assert "events" in data and isinstance(data["events"], list)
 
 
 def test_long_read(artifact_dir):

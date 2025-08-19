@@ -1,6 +1,9 @@
 
 /Oogabooga WebUI/installer_files/env
 
+# Scene artifacts
+SCENES/_artifacts/
+
 # Ignore virtual environments
 **/.venv/
 # Ignore Python cache directories

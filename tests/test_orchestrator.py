@@ -57,6 +57,23 @@ def test_barge_in_resets_adapter():
     assert buffer.depth_ms == 0
 
 
+def test_timeline_records_events():
+    chunk = AudioChunk(pcm=b"", duration_ms=10, eos=True)
+    adapter = DummyAdapter([chunk])
+    orch = Orchestrator(adapter, PlaybackBuffer(capacity_ms=500), ChunkLadder())
+
+    async def run():
+        async for _ in orch.stream():
+            pass
+
+    asyncio.run(run())
+    assert len(orch.timeline) == 1
+    evt = orch.timeline[0]
+    assert evt["stage"] == "adapter_pull"
+    assert "duration_ms" in evt
+    assert evt["result"] in {"ok", "eos"}
+
+
 def test_ring_buffer_tracks_playback():
     buffer = PlaybackBuffer(capacity_ms=1000)
     ring = RingBuffer(capacity=320, sample_rate=16000, playback=buffer)
