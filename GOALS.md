@@ -38,6 +38,18 @@
 
 _(Append new capabilities below using the format above. Keep the list curated; collapse removed items to a brief tombstone if noisy.)_
 
+### Capability: streaming-telemetry
+
+- **Purpose:** Expose orchestrator runtime stages for live monitoring.
+- **Scope:** `Morpheus_Client/orchestrator`, `/stats` API, timeline artifacts.
+- **Shape:** `{stage, duration_ms, result}` events appended; `/stats` returns current timeline; artifacts saved to `SCENES/_artifacts`.
+- **Compatibility:** additive; resets on process restart.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_scenes.py::test_breathing_room`
+- **Linked Decisions:** orchestrator-timeline
+- **Notes:** timeline growth is unbounded during run.
+
 ### Capability: graceful-missing-sandbox
 
 - **Purpose:** Ensure the CLI reports a clear error when the `codex-linux-sandbox` binary is absent.
@@ -155,3 +167,16 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-06] consolidate-requirements
 - **Notes:** UI build prerequisites documented.
+                                                           
+### Capability: pluggable-text-sources
+
+- **Purpose:** Consume text from interchangeable sources like WebSocket feeds or CLI pipes.
+- **Scope:** `text_sources/*`, `Morpheus_Client/server.py`, `/config` endpoint.
+- **Shape:** sources implement `TextSource` protocol and can be hot-swapped via config.
+- **Compatibility:** selectable via `/config`; no migrations.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-14] text-source-adapters
+- **Notes:** initial adapters for WebSocket, HTTP polling and CLI pipe.
+

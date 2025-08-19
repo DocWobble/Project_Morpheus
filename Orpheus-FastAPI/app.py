@@ -257,6 +257,13 @@ async def barge_in():
     return JSONResponse(content={"status": "ok"})
 
 
+@app.get("/stats")
+async def stats():
+    """Return the current orchestrator timeline for live monitoring."""
+    timeline = [] if current_orchestrator is None else current_orchestrator.timeline
+    return {"timeline": timeline}
+
+
 @app.websocket("/ws/barge-in")
 async def barge_in_ws(websocket: WebSocket):
     await websocket.accept()

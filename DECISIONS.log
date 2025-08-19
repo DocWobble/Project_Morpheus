@@ -155,3 +155,28 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** review after first release.
 - **Status:** active
 - **Links:** goal morpheus-client-introspection
+
+### [2025-09-08] orchestrator-timeline
+
+- **Context:** Need visibility into orchestrator stages and live stats.
+- **Decision:** Emit `{stage,duration_ms,result}` events, persist to `SCENES/_artifacts/timeline.json`, and expose `/stats` API.
+- **Alternatives:** Rely solely on logging without structured timeline.
+- **Trade-offs:** In-memory event list may grow without bounds.
+- **Scope:** `Morpheus_Client/orchestrator/core.py`, `scenes/utils.py`, `Orpheus-FastAPI/app.py`.
+- **Impact:** Enables live monitoring and replayable transcripts.
+- **TTL / Review:** review after initial deployment.
+- **Status:** active
+- **Links:** goal streaming-telemetry
+
+### [2025-09-14] text-source-adapters
+
+- **Context:** Need to ingest text from multiple origins for synthesis.
+- **Decision:** Introduce `TextSource` protocol with adapters for WebSocket, HTTP polling and CLI pipes.
+- **Alternatives:** Hardcode a single input mechanism.
+- **Trade-offs:** Additional registry and configuration surface.
+- **Scope:** `text_sources/*`, `Morpheus_Client/server.py`, `ADAPTERS.md`, `INTERFACES.md`.
+- **Impact:** Text sources are pluggable and selectable via `/config`.
+- **TTL / Review:** revisit when more sources are required.
+- **Status:** active
+- **Links:** goal pluggable-text-sources
+
