@@ -176,7 +176,9 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Compatibility:** selectable via `/config`; no migrations.
 - **Status:** active
 - **Owner:** repo owner
-- **Linked Scenes:** TBD
+- **Linked Scenes:**
+  - `tests/test_text_sources.py::test_cli_pipe_feeds_orchestrator`
+  - `tests/test_text_sources.py::test_websocket_feeds_orchestrator`
 - **Linked Decisions:** [2025-09-14] text-source-adapters
 - **Notes:** initial adapters for WebSocket, HTTP polling and CLI pipe.
 

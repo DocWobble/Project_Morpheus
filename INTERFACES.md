@@ -73,7 +73,7 @@
 - **Shape:**
   - **Request/Input:**
     - `GET /config`
-    - `POST /config` with `{adapter?, voice?, source?, ORPHEUS_*?}`
+    - `POST /config` with `{adapter?, voice?, source?, source_config?, ORPHEUS_*?}`
   - **Response/Output:**
     - `GET` → `{...}` current config
     - `POST` → `{message, adapter?, voice?, source?}`
@@ -89,6 +89,7 @@
   - 2025-09-01: documented endpoint
   - 2025-09-14: added text source configuration
   - 2025-10-09: added GET and persistence via `.env`
+  - 2025-10-24: allow `source_config` for constructor options
 
 ### Surface: admin-endpoint
 - **Type:** API
