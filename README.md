@@ -32,3 +32,9 @@ To build the optional web UI, install Node.js and npm then run within the UI dir
 npm install
 npm run build
 ```
+
+### Run
+Start the server and open the admin UI:
+```bash
+python scripts/start.py
+```
