@@ -1,5 +1,14 @@
 # Project Morpheus
 
+## Overview
+
+Single ASGI service exposing:
+
+- `POST /v1/audio/speech` – streams WAV audio chunks
+- `POST /config` – updates adapter, voice, or text source
+- `GET /stats` – returns runtime telemetry
+- `GET /admin` – serves operator dashboard
+
 ## Installation
 
 ### Prerequisites

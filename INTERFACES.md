@@ -52,27 +52,27 @@
 
 ### Surface: stats-endpoint
 - **Type:** API
-- **Purpose:** Expose runtime metrics for operators.
+- **Purpose:** Expose orchestrator timeline for live monitoring.
 - **Shape:**
   - **Request/Input:** `GET /stats`
-  - **Response/Output:** `{uptime_ms, active_requests, adapters}`
+  - **Response/Output:** `{ "timeline": [<timeline-events>] }` (non-streaming JSON)
 - **Idempotency/Retry:** read-only; safe to retry.
 - **Stability:** experimental
 - **Versioning:** none
 - **Auth/Access:** operator only
-- **Observability:** emits `stats_requested` event
+- **Observability:** timeline events appended in memory
 - **Failure Modes:** `503` when orchestrator not initialized
 - **Owner:** repo owner
 - **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
-  - 2025-09-01: documented endpoint
+  - 2025-09-21: updated shape to timeline JSON
 
 ### Surface: config-endpoint
 - **Type:** API
 - **Purpose:** Update active adapter, voice or text source.
 - **Shape:**
   - **Request/Input:** `POST /config` with `{adapter?, voice?, source?}`
-  - **Response/Output:** `{adapter, voice, source}`
+  - **Response/Output:** `{adapter, voice, source}` (non-streaming JSON)
 - **Idempotency/Retry:** repeated calls override current state
 - **Stability:** experimental
 - **Versioning:** none
@@ -89,8 +89,8 @@
 - **Type:** API
 - **Purpose:** Serve administration UI and actions.
 - **Shape:**
-  - **Request/Input:** `GET /admin` (HTML), `POST /admin` actions
-  - **Response/Output:** HTML or `{status}`
+  - **Request/Input:** `GET /admin` (HTML)
+  - **Response/Output:** HTML (non-streaming)
 - **Idempotency/Retry:** `GET` is idempotent; actions may not be
 - **Stability:** experimental
 - **Versioning:** none
@@ -101,6 +101,23 @@
 - **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-01: documented endpoint
+
+### Surface: speech-endpoint
+- **Type:** API
+- **Purpose:** Stream synthesized audio.
+- **Shape:**
+  - **Request/Input:** `POST /v1/audio/speech` with `{input, voice?}`
+  - **Response/Output:** WAV audio streamed via chunked transfer (RIFF header then PCM frames)
+- **Idempotency/Retry:** non-idempotent; repeated calls re-synthesize audio
+- **Stability:** experimental
+- **Versioning:** none
+- **Auth/Access:** public
+- **Observability:** timeline events emitted per chunk
+- **Failure Modes:** `400` on validation error, `503` if orchestrator not ready
+- **Owner:** repo owner
+- **Code:** `Morpheus_Client/server.py`
+- **Change Log:**
+  - 2025-09-21: documented endpoint
 
 ### Surface: client-voices-endpoint
 - **Type:** API
@@ -186,19 +203,3 @@
 - **Change Log:**
   - 2025-09-08: initial schema
 
-### Surface: api-stats
-- **Type:** API
-- **Purpose:** Retrieve in-memory timeline for live monitoring.
-- **Shape:**
-  - **Request/Input:** `GET /stats`
-  - **Response/Output:** `{ "timeline": [<timeline-events>] }`
-- **Idempotency/Retry:** safe to retry
-- **Stability:** experimental
-- **Versioning:** none
-- **Auth/Access:** operator
-- **Observability:** emits timeline-events
-- **Failure Modes:** empty list if orchestrator idle
-- **Owner:** repo owner
-- **Code:** `Morpheus_Client/server.py`
-- **Change Log:**
-  - 2025-09-08: endpoint added

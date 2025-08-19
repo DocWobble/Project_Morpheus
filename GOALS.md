@@ -101,9 +101,9 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 
 - **Purpose:** Provide a self-contained orchestrator service that streams audio via the unified client server.
 - **Scope:** `Morpheus_Client/server.py`, adapter registry.
-- **Shape:** single service coordinates adapters and exposes streaming endpoints.
+- **Shape:** single ASGI service coordinates adapters and exposes `/v1/audio/speech`, `/config`, `/stats`, and `/admin`.
 - **Compatibility:** configured through `.env` and `/config`; no migrations yet.
- - **Status:** active
+- **Status:** active
 - **Owner:** repo owner
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-01] single-service-architecture
@@ -112,8 +112,8 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 ### Capability: admin-interface
 
 - **Purpose:** Offer operator-facing endpoints and UI for runtime control and observation.
-- **Scope:** `/admin`, `/stats`, config templates.
-- **Shape:** FastAPI surfaces expose status and allow configuration updates.
+- **Scope:** `/admin`, `/stats`, `/config`, config templates.
+- **Shape:** ASGI endpoints expose status and allow configuration updates.
 - **Compatibility:** auth TBD; persists changes to `.env`.
 - **Status:** active
 - **Owner:** repo owner
