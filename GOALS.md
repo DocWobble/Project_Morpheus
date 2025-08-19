@@ -192,3 +192,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-19] start-entrypoint
 - **Notes:** none
+
+### Capability: orpheus-cpp-startup-check
+
+- **Purpose:** Fail fast when the local C++ bindings are missing.
+- **Scope:** `scripts/start.py`, `requirements.txt`, `README.md`.
+- **Shape:** Startup aborts with a descriptive error if `orpheus_cpp` cannot be imported.
+- **Compatibility:** additive; service does not launch without the binding.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_start_requires_orpheus_cpp.py`
+- **Linked Decisions:** [2025-09-30] orpheus-cpp-required
+- **Notes:** build step may take several minutes

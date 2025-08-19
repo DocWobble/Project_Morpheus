@@ -18,6 +18,17 @@
 - **Links:** <PRs, scenes, interface entries, goal names>
 
 _(New entries go on top. Keep each under ~20 lines.)_
+### [2025-09-30] orpheus-cpp-required
+
+- **Context:** Starting the service without `orpheus_cpp` led to runtime failures during synthesis.
+- **Decision:** Pin `orpheus-cpp` and abort startup with a descriptive error when the module is missing.
+- **Alternatives:** Import on first use and fail lazily; rely on an external service for synthesis.
+- **Trade-offs:** Adds a native build step that increases installation time.
+- **Scope:** `requirements.txt`, `scripts/start.py`, `README.md`.
+- **Impact:** Predictable startup behaviour and clearer dependency expectations.
+- **TTL / Review:** Revisit if a pure-Python or remote backend becomes default.
+- **Status:** ACTIVE
+- **Links:** goal orpheus-cpp-startup-check, tests/test_start_requires_orpheus_cpp.py
 ### [2025-09-21] fastapi-migration
 
 - **Context:** Docs and configs still referenced FastAPI though the service now runs on a lightweight ASGI stack.
