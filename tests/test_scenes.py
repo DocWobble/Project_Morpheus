@@ -45,6 +45,11 @@ def test_breathing_room(artifact_dir):
     with open(global_path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
     assert "events" in data and isinstance(data["events"], list)
+    transcript_path = Path("SCENES/_artifacts/transcripts.json")
+    assert transcript_path.exists()
+    with open(transcript_path, "r", encoding="utf-8") as fh:
+        transcripts = json.load(fh)
+    assert transcripts[0]["text"] == "breathing_room"
 
 
 def test_long_read(artifact_dir):

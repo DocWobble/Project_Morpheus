@@ -32,6 +32,7 @@ def test_stats_endpoint_exposes_timeline():
     adapter = DummyAdapter([AudioChunk(pcm=b"", duration_ms=10, eos=True)])
     orch = Orchestrator(adapter, PlaybackBuffer(capacity_ms=500), ChunkLadder())
     server.current_orchestrator = orch
+    orch.log_transcript("hello")
 
     async def run():
         async for _ in orch.stream():
@@ -49,4 +50,6 @@ def test_stats_endpoint_exposes_timeline():
     body = resp.json()
     assert "timeline" in body
     assert isinstance(body["timeline"], list)
+    assert "transcripts" in body
+    assert body["transcripts"][0]["text"] == "hello"
 

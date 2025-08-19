@@ -143,6 +143,7 @@ async def orchestrated_pcm_stream(
     )
     buffer = PlaybackBuffer(capacity_ms=1000)
     current_orchestrator = Orchestrator(adapter, buffer, ChunkLadder())
+    current_orchestrator.log_transcript(prompt)
     stitched = stitch_chunks(
         current_orchestrator.stream(), sample_rate=SAMPLE_RATE
     )
@@ -279,10 +280,15 @@ async def update_config(request: Request) -> JSONResponse:
 
 
 async def stats(request: Request) -> JSONResponse:
-    """Return the current orchestrator timeline for live monitoring."""
+    """Return current timeline and transcript history for monitoring."""
 
-    timeline = [] if current_orchestrator is None else current_orchestrator.timeline
-    return JSONResponse({"timeline": timeline})
+    if current_orchestrator is None:
+        timeline: list[dict] = []
+        transcripts: list[dict] = []
+    else:
+        timeline = current_orchestrator.timeline
+        transcripts = current_orchestrator.transcripts
+    return JSONResponse({"timeline": timeline, "transcripts": transcripts})
 
 
 async def barge_in(request: Request) -> JSONResponse:  # pragma: no cover - simple

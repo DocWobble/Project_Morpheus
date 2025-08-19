@@ -42,6 +42,7 @@ class Orchestrator:
         self.ring = ring
         self._barge_in = asyncio.Event()
         self.timeline: list[dict] = []
+        self.transcripts: list[dict] = []
 
     def _record(self, stage: str, start: float, result: str) -> None:
         """Append a timing event to the in-memory timeline."""
@@ -52,8 +53,12 @@ class Orchestrator:
         """Notify the orchestrator that the current utterance was interrupted."""
         self._barge_in.set()
 
+    def log_transcript(self, text: str) -> None:
+        """Record a transcript entry for later inspection."""
+        self.transcripts.append({"timestamp": time.time(), "text": text})
+
     def save_timeline(self, path: str | Path) -> None:
-        """Persist current timeline and basic metrics to ``path``."""
+        """Persist current timeline, metrics and transcripts to ``path``."""
         payload = {
             "events": self.timeline,
             "metrics": {"events": len(self.timeline)},
@@ -62,6 +67,9 @@ class Orchestrator:
         out.parent.mkdir(parents=True, exist_ok=True)
         with open(out, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2)
+        transcript_path = out.parent / "transcripts.json"
+        with open(transcript_path, "w", encoding="utf-8") as fh:
+            json.dump(self.transcripts, fh, indent=2)
 
     async def stream(
         self, on_event: Callable[[dict], None] | None = None
