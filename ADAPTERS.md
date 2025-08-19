@@ -19,4 +19,34 @@
   "limits": {"max_batch": 1000, "timeout_ms": 30000},
   "stateful_context": "rolling|minimal|none"
 }
+```
 
+## Text Source Adapters
+
+Text sources implement the `TextSource` protocol and expose a descriptor for runtime negotiation.
+
+### Protocol
+
+```python
+class TextSource(Protocol):
+    async def stream(self) -> AsyncGenerator[str, None]:
+        ...
+```
+
+### Descriptor
+
+```json
+{
+  "name": "websocket|http_poll|cli_pipe",
+  "streaming": true,
+  "unit": "msgs",
+  "granularity": ["line"],
+  "stateful_context": "rolling|minimal|none"
+}
+```
+
+Bundled adapters:
+
+- `websocket` – reads messages from a WebSocket feed.
+- `http_poll` – polls an HTTP endpoint for new text.
+- `cli_pipe` – consumes lines from a CLI pipe via `asyncio`.
