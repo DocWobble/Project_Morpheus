@@ -180,3 +180,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-09-14] text-source-adapters
 - **Notes:** initial adapters for WebSocket, HTTP polling and CLI pipe.
 
+
+### Capability: auto-start-config
+
+- **Purpose:** Simplify launching with a single script that persists user preferences.
+- **Scope:** `scripts/start.py`, start scripts, `README.md`.
+- **Shape:** `scripts/start.py` ensures `.env` exists, loads overrides from `~/.morpheus/config`, launches the server, and opens `/admin` in the browser.
+- **Compatibility:** additive; existing `.env` remains; user config overrides via `~/.morpheus/config`.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-19] start-entrypoint
+- **Notes:** none
