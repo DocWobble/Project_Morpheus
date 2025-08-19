@@ -69,11 +69,15 @@
 
 ### Surface: config-endpoint
 - **Type:** API
-- **Purpose:** Update active adapter, voice or text source.
+- **Purpose:** Read and update configuration.
 - **Shape:**
-  - **Request/Input:** `POST /config` with `{adapter?, voice?, source?}`
-  - **Response/Output:** `{adapter, voice, source}` (non-streaming JSON)
-- **Idempotency/Retry:** repeated calls override current state
+  - **Request/Input:**
+    - `GET /config`
+    - `POST /config` with `{adapter?, voice?, source?, ORPHEUS_*?}`
+  - **Response/Output:**
+    - `GET` → `{...}` current config
+    - `POST` → `{message, adapter?, voice?, source?}`
+- **Idempotency/Retry:** `GET` is idempotent; `POST` overwrites provided keys
 - **Stability:** experimental
 - **Versioning:** none
 - **Auth/Access:** operator only
@@ -84,6 +88,7 @@
 - **Change Log:**
   - 2025-09-01: documented endpoint
   - 2025-09-14: added text source configuration
+  - 2025-10-09: added GET and persistence via `.env`
 
 ### Surface: admin-endpoint
 - **Type:** API

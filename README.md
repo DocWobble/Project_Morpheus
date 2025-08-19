@@ -5,7 +5,8 @@
 Single ASGI service exposing:
 
 - `POST /v1/audio/speech` – streams WAV audio chunks
-- `POST /config` – updates adapter, voice, or text source
+- `GET /config` – returns current configuration
+- `POST /config` – updates adapter, voice, text source or env vars and persists
 - `GET /stats` – returns runtime telemetry
 - `GET /admin` – serves operator dashboard
 

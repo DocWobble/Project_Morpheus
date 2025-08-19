@@ -22,7 +22,7 @@ from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from .config import ensure_env_file_exists
+from .config import ensure_env_file_exists, get_current_config, save_config
 from .tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
 from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
 from .tts_engine.inference import SAMPLE_RATE
@@ -125,12 +125,6 @@ class SpeechRequest(BaseModel):
     speed: float = 1.0
 
 
-class ConfigUpdate(BaseModel):
-    adapter: str | None = None
-    voice: VoiceSchema | None = None
-    source: str | None = None
-
-
 async def create_speech_api(request: Request) -> StreamingResponse:
     """Generate speech from text via orchestrator."""
 
@@ -191,37 +185,61 @@ async def get_sources(request: Request) -> JSONResponse:
     return JSONResponse(source_registry.available())
 
 
+async def get_config(request: Request) -> JSONResponse:
+    """Return current configuration from environment and `.env`."""
+
+    return JSONResponse(get_current_config())
+
+
 async def update_config(request: Request) -> JSONResponse:
-    """Update active adapter, voice schema or text source."""
+    """Update configuration and persist changes to `.env`."""
 
     global current_adapter_name, current_voice, current_source_name
 
     try:
-        cfg = ConfigUpdate(**await request.json())
-    except ValidationError as exc:  # pragma: no cover - defensive
+        data = await request.json()
+    except Exception as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    available = adapter_registry.available()
-    if cfg.adapter:
-        if cfg.adapter not in available:
+    adapter = data.get("adapter")
+    if adapter:
+        available = adapter_registry.available()
+        if adapter not in available:
             raise HTTPException(status_code=404, detail="Unknown adapter")
-        current_adapter_name = cfg.adapter
-    if cfg.voice:
-        current_voice = cfg.voice
-    if cfg.source:
+        current_adapter_name = adapter
+
+    voice = data.get("voice")
+    if voice:
+        if isinstance(voice, dict):
+            current_voice = VoiceSchema(**voice)
+        else:
+            current_voice = VoiceSchema(voice=voice)
+
+    source = data.get("source")
+    if source:
         sources = source_registry.available()
-        if cfg.source not in sources:
+        if source not in sources:
             raise HTTPException(status_code=404, detail="Unknown source")
-        current_source_name = cfg.source
+        current_source_name = source
+
     if current_orchestrator:
         current_orchestrator.signal_barge_in()
-    return JSONResponse(
-        {
-            "adapter": current_adapter_name,
-            "voice": current_voice.model_dump(),
-            "source": current_source_name,
-        }
-    )
+
+    env_cfg = get_current_config()
+    persist = data.copy()
+    if voice:
+        persist["voice"] = current_voice.voice
+    env_cfg.update({k: str(v) if not isinstance(v, str) else v for k, v in persist.items()})
+    save_config(env_cfg)
+
+    resp = {"message": "ok"}
+    if "adapter" in env_cfg:
+        resp["adapter"] = env_cfg["adapter"]
+    if "voice" in env_cfg:
+        resp["voice"] = current_voice.model_dump()
+    if "source" in env_cfg:
+        resp["source"] = env_cfg["source"]
+    return JSONResponse(resp)
 
 
 async def stats(request: Request) -> JSONResponse:
@@ -256,6 +274,7 @@ routes = [
     Route("/adapters", get_adapters, methods=["GET"]),
     Route("/sources", get_sources, methods=["GET"]),
     Route("/stats", stats, methods=["GET"]),
+    Route("/config", get_config, methods=["GET"]),
     Route("/config", update_config, methods=["POST"]),
     Route("/barge-in", barge_in, methods=["POST"]),
     WebSocketRoute("/ws/barge-in", barge_in_ws),

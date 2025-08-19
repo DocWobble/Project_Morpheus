@@ -117,7 +117,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Compatibility:** auth TBD; persists changes to `.env`.
 - **Status:** active
 - **Owner:** repo owner
-- **Linked Scenes:** TBD
+- **Linked Scenes:** `tests/test_text_sources.py::test_config_round_trip_persistence`
 - **Linked Decisions:** [2025-09-01] single-service-architecture
 - **Notes:** n/a
 
