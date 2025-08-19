@@ -52,20 +52,21 @@
 
 ### Surface: stats-endpoint
 - **Type:** API
-- **Purpose:** Expose orchestrator timeline for live monitoring.
+- **Purpose:** Expose orchestrator timeline and transcripts for live monitoring.
 - **Shape:**
   - **Request/Input:** `GET /stats`
-  - **Response/Output:** `{ "timeline": [<timeline-events>] }` (non-streaming JSON)
+  - **Response/Output:** `{ "timeline": [<timeline-events>], "transcripts": [ {timestamp,text} ] }` (non-streaming JSON)
 - **Idempotency/Retry:** read-only; safe to retry.
 - **Stability:** experimental
 - **Versioning:** none
 - **Auth/Access:** operator only
-- **Observability:** timeline events appended in memory
+- **Observability:** timeline events and transcripts appended in memory
 - **Failure Modes:** `503` when orchestrator not initialized
 - **Owner:** repo owner
 - **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-21: updated shape to timeline JSON
+  - 2025-09-27: added transcript history to response
 
 ### Surface: config-endpoint
 - **Type:** API

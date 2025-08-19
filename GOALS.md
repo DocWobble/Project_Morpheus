@@ -206,3 +206,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** `tests/test_start_requires_orpheus_cpp.py`
 - **Linked Decisions:** [2025-09-30] orpheus-cpp-required
 - **Notes:** build step may take several minutes
+
+### Capability: transcript-history
+
+- **Purpose:** Retain utterance text for replay and monitoring.
+- **Scope:** `Morpheus_Client/orchestrator`, `/stats` API, `SCENES/_artifacts`.
+- **Shape:** `{timestamp,text}` entries appended per utterance; `/stats` exposes transcript list; transcripts persisted to `SCENES/_artifacts/transcripts.json`.
+- **Compatibility:** additive; resets on process restart.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_stats_endpoint.py::test_stats_endpoint_exposes_timeline`, `tests/test_scenes.py::test_breathing_room`
+- **Linked Decisions:** [2025-10-30] orchestrator-transcripts
+- **Notes:** transcripts list grows without bound

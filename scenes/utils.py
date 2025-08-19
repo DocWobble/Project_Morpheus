@@ -33,6 +33,7 @@ def run_scene(scene_name: str, adapter, tmp_path: Path, barge_in_at: int | None 
     """
     buffer = PlaybackBuffer(capacity_ms=1000)
     orch = Orchestrator(adapter, buffer, ChunkLadder())
+    orch.log_transcript(scene_name)
     timeline: list[dict] = []
     audio_bytes = bytearray()
     start = time.perf_counter()
