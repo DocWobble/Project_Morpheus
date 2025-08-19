@@ -83,6 +83,18 @@ except (ValueError, TypeError):
     print("WARNING: Invalid ORPHEUS_TOP_P value, using 0.9 as fallback")
     TOP_P = 0.9
 
+
+def update_generation_params(*, temperature=None, top_p=None, max_tokens=None) -> None:
+    """Update runtime generation parameters in-place."""
+
+    global TEMPERATURE, TOP_P, MAX_TOKENS
+    if temperature is not None:
+        TEMPERATURE = float(temperature)
+    if top_p is not None:
+        TOP_P = float(top_p)
+    if max_tokens is not None:
+        MAX_TOKENS = int(max_tokens)
+
 # Repetition penalty is hardcoded to 1.1 which is the only stable value for quality output
 REPETITION_PENALTY = 1.1
 

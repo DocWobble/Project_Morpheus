@@ -9,6 +9,7 @@ clients continue to function.
 from __future__ import annotations
 
 import asyncio
+import os
 import struct
 from contextlib import suppress
 from pathlib import Path
@@ -31,6 +32,7 @@ from .tts_engine import (
     VOICE_TO_LANGUAGE,
     AVAILABLE_LANGUAGES,
 )
+from .tts_engine import inference as inference_params
 from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
 from .tts_engine.inference import SAMPLE_RATE
 from .orchestrator.buffer import PlaybackBuffer
@@ -248,6 +250,37 @@ async def update_config(request: Request) -> JSONResponse:
     except Exception as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    gen_updates: dict[str, float | int] = {}
+    if (temp := data.get("ORPHEUS_TEMPERATURE")) is not None:
+        try:
+            temp_val = float(temp)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid ORPHEUS_TEMPERATURE")
+        if not 0.1 <= temp_val <= 1.5:
+            raise HTTPException(status_code=400, detail="ORPHEUS_TEMPERATURE out of range")
+        data["ORPHEUS_TEMPERATURE"] = temp_val
+        gen_updates["temperature"] = temp_val
+
+    if (top_p := data.get("ORPHEUS_TOP_P")) is not None:
+        try:
+            top_p_val = float(top_p)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid ORPHEUS_TOP_P")
+        if not 0.0 < top_p_val <= 1.0:
+            raise HTTPException(status_code=400, detail="ORPHEUS_TOP_P out of range")
+        data["ORPHEUS_TOP_P"] = top_p_val
+        gen_updates["top_p"] = top_p_val
+
+    if (mt := data.get("ORPHEUS_MAX_TOKENS")) is not None:
+        try:
+            mt_val = int(mt)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid ORPHEUS_MAX_TOKENS")
+        if not 1 <= mt_val <= 200000:
+            raise HTTPException(status_code=400, detail="ORPHEUS_MAX_TOKENS out of range")
+        data["ORPHEUS_MAX_TOKENS"] = mt_val
+        gen_updates["max_tokens"] = mt_val
+
     adapter = data.get("adapter")
     if adapter:
         available = adapter_registry.available()
@@ -281,6 +314,13 @@ async def update_config(request: Request) -> JSONResponse:
         persist["voice"] = current_voice.voice
     env_cfg.update({k: str(v) if not isinstance(v, str) else v for k, v in persist.items()})
     save_config(env_cfg)
+
+    for key in ("ORPHEUS_TEMPERATURE", "ORPHEUS_TOP_P", "ORPHEUS_MAX_TOKENS"):
+        if key in data:
+            os.environ[key] = str(data[key])
+
+    if gen_updates:
+        inference_params.update_generation_params(**gen_updates)
 
     resp = {"message": "ok"}
     if "adapter" in env_cfg:

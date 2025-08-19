@@ -242,3 +242,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** `tests/test_admin_dynamic_voices.py::test_admin_voices_loaded_via_api`
 - **Linked Decisions:** [2025-08-19] admin-voices-runtime
 - **Notes:** initial load depends on voices endpoint availability
+
+### Capability: tunable-inference-params
+
+- **Purpose:** Allow operators to adjust sampling parameters without restart.
+- **Scope:** `/config` endpoint, inference module, admin UI form.
+- **Shape:** Posting `ORPHEUS_TEMPERATURE`, `ORPHEUS_TOP_P`, or `ORPHEUS_MAX_TOKENS` updates runtime behaviour and persists to `.env`.
+- **Compatibility:** falls back to defaults when unspecified.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_config_generation_params.py::test_generation_param_round_trip`
+- **Linked Decisions:** [2025-10-30] tunable-inference-params
+- **Notes:** none
