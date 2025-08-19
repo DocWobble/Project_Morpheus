@@ -7,6 +7,12 @@ from Morpheus_Client import start_server
 
 def main() -> None:
     """Entry point to launch the Morpheus server and open admin UI."""
+    try:
+        import orpheus_cpp  # noqa: F401
+    except ImportError as exc:  # pragma: no cover - depends on optional dep
+        raise SystemExit(
+            "orpheus_cpp is required for local synthesis. Install it with `pip install orpheus-cpp`."
+        ) from exc
     ensure_env_file_exists()
     # Load default .env if present
     load_dotenv(override=True)

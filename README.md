@@ -35,6 +35,15 @@ pip install -r requirements.txt
   pip install torch==2.2.0
   ```
 
+### C++ bindings
+The local streaming adapter uses `orpheus_cpp`, which builds a native extension. Ensure a C++17 toolchain and CMake are available (e.g. `sudo apt install build-essential cmake` on Linux or [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) on Windows) before installing:
+
+```bash
+pip install orpheus-cpp
+```
+
+This dependency is pinned in `requirements.txt`; the build step may take several minutes.
+
 ### UI build
 To build the optional web UI, install Node.js and npm then run within the UI directory (for example `Morpheus_Client/admin`):
 ```bash
