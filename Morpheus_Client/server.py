@@ -25,7 +25,12 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from .config import ensure_env_file_exists, get_current_config, save_config
-from .tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
+from .tts_engine import (
+    AVAILABLE_VOICES,
+    DEFAULT_VOICE,
+    VOICE_TO_LANGUAGE,
+    AVAILABLE_LANGUAGES,
+)
 from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
 from .tts_engine.inference import SAMPLE_RATE
 from .orchestrator.buffer import PlaybackBuffer
@@ -184,11 +189,19 @@ async def create_speech_api(request: Request) -> StreamingResponse:
 
 
 async def list_voices(request: Request) -> JSONResponse:  # pragma: no cover - simple
-    """Return list of available voices."""
+    """Return available voices and languages."""
 
     if not AVAILABLE_VOICES:
         raise HTTPException(status_code=404, detail="No voices available")
-    return JSONResponse({"status": "ok", "voices": AVAILABLE_VOICES})
+    return JSONResponse(
+        {
+            "status": "ok",
+            "voices": AVAILABLE_VOICES,
+            "languages": AVAILABLE_LANGUAGES,
+            "voice_to_language": VOICE_TO_LANGUAGE,
+            "default": DEFAULT_VOICE,
+        }
+    )
 
 
 async def tts_ws(websocket: WebSocket) -> None:

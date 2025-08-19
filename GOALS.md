@@ -230,3 +230,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** `tests/test_text_sources.py`
 - **Linked Decisions:** [2025-08-19] user-config-precedence
 - **Notes:** home directory config created on save
+
+### Capability: admin-voices-runtime
+
+- **Purpose:** Admin UI loads available voices and languages at runtime from the API.
+- **Scope:** `Morpheus_Client/admin/tts.html`, `Morpheus_Client/server.py`
+- **Shape:** `/v1/audio/voices` returns voice-language mapping; admin page fetches and renders dynamically.
+- **Compatibility:** additive to existing voice list API; static `/admin` assets remain unchanged by backend config.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_admin_dynamic_voices.py::test_admin_voices_loaded_via_api`
+- **Linked Decisions:** [2025-08-19] admin-voices-runtime
+- **Notes:** initial load depends on voices endpoint availability
