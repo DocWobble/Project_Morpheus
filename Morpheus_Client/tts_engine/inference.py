@@ -1,14 +1,9 @@
 import os
 import sys
-import httpx
-import json
 import time
 import wave
 import numpy as np
 import sounddevice as sd
-import argparse
-import asyncio
-from typing import List, Dict, Any, Optional, AsyncGenerator, Union, Tuple
 from dotenv import load_dotenv
 
 # Helper to detect if running in Uvicorn's reloader
@@ -69,30 +64,6 @@ else:
         print(f"📊 RAM: {ram_gb:.2f} GB")
         print("⚙️ Using CPU-optimized settings")
 
-# Load configuration from environment variables without hardcoded defaults
-# Critical settings - will log errors if missing
-required_settings = ["ORPHEUS_API_URL"]
-missing_settings = [s for s in required_settings if s not in os.environ]
-if missing_settings:
-    print(f"ERROR: Missing required environment variable(s): {', '.join(missing_settings)}")
-    print("Please set them in .env file or environment. See .env.example for defaults.")
-
-# API connection settings
-API_URL = os.environ.get("ORPHEUS_API_URL")
-if not API_URL:
-    print("WARNING: ORPHEUS_API_URL not set. API calls will fail until configured.")
-
-HEADERS = {
-    "Content-Type": "application/json"
-}
-
-# Request timeout settings
-try:
-    REQUEST_TIMEOUT = int(os.environ.get("ORPHEUS_API_TIMEOUT", "120"))
-except (ValueError, TypeError):
-    print("WARNING: Invalid ORPHEUS_API_TIMEOUT value, using 120 seconds as fallback")
-    REQUEST_TIMEOUT = 120
-
 # Model generation parameters from environment variables
 try:
     MAX_TOKENS = int(os.environ.get("ORPHEUS_MAX_TOKENS", "8192"))
@@ -124,7 +95,6 @@ except (ValueError, TypeError):
 # Print loaded configuration only in the main process, not in the reloader
 if not IS_RELOADER:
     print(f"Configuration loaded:")
-    print(f"  API_URL: {API_URL}")
     print(f"  MAX_TOKENS: {MAX_TOKENS}")
     print(f"  TEMPERATURE: {TEMPERATURE}")
     print(f"  TOP_P: {TOP_P}")
@@ -185,42 +155,42 @@ END_TOKEN_IDS = [128009, 128260, 128261, 128257]
 # Performance monitoring
 class PerformanceMonitor:
     """Track and report performance metrics"""
+
     def __init__(self):
         self.start_time = time.time()
         self.token_count = 0
         self.audio_chunks = 0
         self.last_report_time = time.time()
         self.report_interval = 2.0  # seconds
-        
+
     def add_tokens(self, count: int = 1) -> None:
         self.token_count += count
         self._check_report()
-        
+
     def add_audio_chunk(self) -> None:
         self.audio_chunks += 1
         self._check_report()
-        
+
     def _check_report(self) -> None:
         current_time = time.time()
         if current_time - self.last_report_time >= self.report_interval:
             self.report()
             self.last_report_time = current_time
-            
+
     def report(self) -> None:
         elapsed = time.time() - self.start_time
         if elapsed < 0.001:
             return
-            
+
         tokens_per_sec = self.token_count / elapsed
         chunks_per_sec = self.audio_chunks / elapsed
-        
+
         # Estimate audio duration based on audio chunks (each chunk is ~0.085s of audio)
         est_duration = self.audio_chunks * 0.085
-        
-        print(f"Progress: {tokens_per_sec:.1f} tokens/sec, est. {est_duration:.1f}s audio generated, {self.token_count} tokens, {self.audio_chunks} chunks in {elapsed:.1f}s")
 
-# Create global performance monitor
-perf_monitor = PerformanceMonitor()
+        print(
+            f"Progress: {tokens_per_sec:.1f} tokens/sec, est. {est_duration:.1f}s audio generated, {self.token_count} tokens, {self.audio_chunks} chunks in {elapsed:.1f}s"
+        )
 
 def format_prompt(prompt: str, voice: str = DEFAULT_VOICE) -> str:
     """Format prompt for Orpheus model with voice prefix and special tokens."""
@@ -238,111 +208,6 @@ def format_prompt(prompt: str, voice: str = DEFAULT_VOICE) -> str:
     
     return f"{special_start}{formatted_prompt}{special_end}"
 
-async def generate_tokens_from_api(
-    prompt: str,
-    voice: str = DEFAULT_VOICE,
-    temperature: float = TEMPERATURE,
-    top_p: float = TOP_P,
-    max_tokens: int = MAX_TOKENS,
-    repetition_penalty: float = REPETITION_PENALTY,
-) -> AsyncGenerator[str, None]:
-    """Generate tokens from text using OpenAI-compatible API with optimized streaming and retry logic."""
-    start_time = time.time()
-    formatted_prompt = format_prompt(prompt, voice)
-    print(f"Generating speech for: {formatted_prompt}")
-
-    if HIGH_END_GPU:
-        print("Using optimized parameters for high-end GPU")
-    elif torch.cuda.is_available():
-        print("Using optimized parameters for GPU acceleration")
-
-    payload = {
-        "prompt": formatted_prompt,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "top_p": top_p,
-        "repeat_penalty": repetition_penalty,
-        "stream": True,
-    }
-
-    model_name = os.environ.get("ORPHEUS_MODEL_NAME", "Orpheus-3b-FT-Q8_0.gguf")
-    payload["model"] = model_name
-
-    retry_count = 0
-    max_retries = 3
-
-    async with httpx.AsyncClient() as client:
-        while retry_count < max_retries:
-            try:
-                async with client.stream(
-                    "POST",
-                    API_URL,
-                    headers=HEADERS,
-                    json=payload,
-                    timeout=REQUEST_TIMEOUT,
-                ) as response:
-                    if response.status_code != 200:
-                        print(f"Error: API request failed with status code {response.status_code}")
-                        print(f"Error details: {await response.aread()}")
-                        if response.status_code >= 500:
-                            retry_count += 1
-                            wait_time = 2 ** retry_count
-                            print(f"Retrying in {wait_time} seconds...")
-                            await asyncio.sleep(wait_time)
-                            continue
-                        return
-
-                    token_counter = 0
-                    async for line in response.aiter_lines():
-                        if line and line.startswith("data: "):
-                            data_str = line[6:]
-                            if data_str.strip() == "[DONE]":
-                                break
-                            try:
-                                data = json.loads(data_str)
-                                if "choices" in data and data["choices"]:
-                                    token_chunk = data["choices"][0].get("text", "")
-                                    for token_text in token_chunk.split(">"):
-                                        token_text = f"{token_text}>"
-                                        token_counter += 1
-                                        perf_monitor.add_tokens()
-                                        if token_text:
-                                            yield token_text
-                            except json.JSONDecodeError as e:
-                                print(f"Error decoding JSON: {e}")
-                                continue
-
-                    generation_time = time.time() - start_time
-                    tokens_per_second = token_counter / generation_time if generation_time > 0 else 0
-                    print(
-                        f"Token generation complete: {token_counter} tokens in {generation_time:.2f}s ({tokens_per_second:.1f} tokens/sec)"
-                    )
-                    return
-
-            except httpx.TimeoutException:
-                print(f"Request timed out after {REQUEST_TIMEOUT} seconds")
-                retry_count += 1
-                if retry_count < max_retries:
-                    wait_time = 2 ** retry_count
-                    print(
-                        f"Retrying in {wait_time} seconds... (attempt {retry_count+1}/{max_retries})"
-                    )
-                    await asyncio.sleep(wait_time)
-                else:
-                    print("Max retries reached. Token generation failed.")
-                    return
-            except httpx.RequestError:
-                print(f"Connection error to API at {API_URL}")
-                retry_count += 1
-                if retry_count < max_retries:
-                    wait_time = 2 ** retry_count
-                    print(
-                        f"Retrying in {wait_time} seconds... (attempt {retry_count+1}/{max_retries})"
-                    )
-                    await asyncio.sleep(wait_time)
-                else:
-                    print("Max retries reached. Token generation failed.")
-                    return
 
 def stream_audio(audio_buffer):
     """Stream audio buffer to output device with error handling."""
@@ -411,86 +276,6 @@ def split_text_into_sentences(text):
         i += 1
     
     return combined_sentences
-
-async def generate_speech_from_api(prompt, voice=DEFAULT_VOICE, output_file=None, temperature=TEMPERATURE,
-                     top_p=TOP_P, max_tokens=MAX_TOKENS, repetition_penalty=None,
-                     use_batching=True, max_batch_chars=1000):
-    """Generate speech from text using Orpheus model.
-
-    When ``output_file`` is provided the audio is written to disk and the
-    generated PCM segments are returned.  If ``output_file`` is ``None`` the
-    function returns an async generator yielding raw PCM chunks suitable for
-    streaming.
-    """
-    print(f"Starting speech generation for '{prompt[:50]}{'...' if len(prompt) > 50 else ''}'")
-    print(f"Using voice: {voice}, GPU acceleration: {'Yes (High-end)' if HIGH_END_GPU else 'Yes' if torch.cuda.is_available() else 'No'}")
-
-    # Reset performance monitor
-    global perf_monitor
-    perf_monitor = PerformanceMonitor()
-
-    start_time = time.time()
-
-    async def _stream_batches(batches):
-        for batch in batches:
-            token_gen = generate_tokens_from_api(
-                prompt=batch,
-                voice=voice,
-                temperature=temperature,
-                top_p=top_p,
-                max_tokens=max_tokens,
-                repetition_penalty=REPETITION_PENALTY,
-            )
-            async for chunk in tokens_decoder(token_gen):
-                yield chunk
-
-    # When writing to file, iterate over decoded chunks and save them
-    if output_file:
-        os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
-        audio_segments = []
-        with wave.open(output_file, "wb") as wav_file:
-            wav_file.setnchannels(1)
-            wav_file.setsampwidth(2)
-            wav_file.setframerate(SAMPLE_RATE)
-            async for chunk in tokens_decoder_sync(
-                generate_tokens_from_api(
-                    prompt=prompt,
-                    voice=voice,
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                    repetition_penalty=REPETITION_PENALTY,
-                )
-            ):
-                if chunk:
-                    wav_file.writeframes(chunk)
-                    audio_segments.append(chunk)
-
-        end_time = time.time()
-        total_time = end_time - start_time
-        print(f"Total speech generation completed in {total_time:.2f} seconds")
-        return audio_segments
-
-    # Streaming path – operate entirely in memory
-    batches = [prompt]
-    if use_batching and len(prompt) >= max_batch_chars:
-        print(f"Using sentence-based batching for text with {len(prompt)} characters")
-        sentences = split_text_into_sentences(prompt)
-        current_batch = ""
-        batches = []
-        for sentence in sentences:
-            if len(current_batch) + len(sentence) > max_batch_chars and current_batch:
-                batches.append(current_batch)
-                current_batch = sentence
-            else:
-                if current_batch:
-                    current_batch += " "
-                current_batch += sentence
-        if current_batch:
-            batches.append(current_batch)
-        print(f"Created {len(batches)} batches for processing")
-
-    return _stream_batches(batches)
 
 def stitch_wav_files(input_files, output_file, crossfade_ms=50):
     """Stitch multiple WAV files together with crossfading for smooth transitions."""
@@ -576,60 +361,3 @@ def list_available_voices():
     print("\nAvailable emotion tags:")
     print("<laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>")
 
-def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Orpheus Text-to-Speech using Orpheus-FASTAPI")
-    parser.add_argument("--text", type=str, help="Text to convert to speech")
-    parser.add_argument("--voice", type=str, default=DEFAULT_VOICE, help=f"Voice to use (default: {DEFAULT_VOICE})")
-    parser.add_argument("--output", type=str, help="Output WAV file path")
-    parser.add_argument("--list-voices", action="store_true", help="List available voices")
-    parser.add_argument("--temperature", type=float, default=TEMPERATURE, help="Temperature for generation")
-    parser.add_argument("--top_p", type=float, default=TOP_P, help="Top-p sampling parameter")
-    parser.add_argument("--repetition_penalty", type=float, default=REPETITION_PENALTY, 
-                       help="Repetition penalty (fixed at 1.1 for stable generation - parameter kept for compatibility)")
-    
-    args = parser.parse_args()
-    
-    if args.list_voices:
-        list_available_voices()
-        return
-    
-    # Use text from command line or prompt user
-    prompt = args.text
-    if not prompt:
-        if len(sys.argv) > 1 and sys.argv[1] not in ("--voice", "--output", "--temperature", "--top_p", "--repetition_penalty"):
-            prompt = " ".join([arg for arg in sys.argv[1:] if not arg.startswith("--")])
-        else:
-            prompt = input("Enter text to synthesize: ")
-            if not prompt:
-                prompt = "Hello, I am Orpheus, an AI assistant with emotional speech capabilities."
-    
-    # Default output file if none provided
-    output_file = args.output
-    if not output_file:
-        # Create outputs directory if it doesn't exist
-        os.makedirs("outputs", exist_ok=True)
-        # Generate a filename based on the voice and a timestamp
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        output_file = f"outputs/{args.voice}_{timestamp}.wav"
-        print(f"No output file specified. Saving to {output_file}")
-    
-    # Generate speech
-    start_time = time.time()
-    audio_segments = asyncio.run(
-        generate_speech_from_api(
-            prompt=prompt,
-            voice=args.voice,
-            temperature=args.temperature,
-            top_p=args.top_p,
-            repetition_penalty=args.repetition_penalty,
-            output_file=output_file,
-        )
-    )
-    end_time = time.time()
-    
-    print(f"Speech generation completed in {end_time - start_time:.2f} seconds")
-    print(f"Audio saved to {output_file}")
-
-if __name__ == "__main__":
-    main()

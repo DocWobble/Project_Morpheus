@@ -18,6 +18,17 @@
 - **Links:** <PRs, scenes, interface entries, goal names>
 
 _(New entries go on top. Keep each under ~20 lines.)_
+### [2025-10-24] orpheus-cpp-default
+
+- **Context:** Remote `ORPHEUS_API_URL` checks lingered despite local `orpheus_cpp` engine being the primary path.
+- **Decision:** Drop API URL requirements, isolate remote helpers, and register `orpheus_cpp` as the default adapter.
+- **Alternatives:** Keep mixed local/remote logic in `inference.py`.
+- **Trade-offs:** Remote API helpers move to a separate module requiring explicit import.
+- **Scope:** `Morpheus_Client/tts_engine`, `Morpheus_Client/server.py`, `README.md`.
+- **Impact:** Simplifies configuration and clarifies in-process synthesis.
+- **TTL / Review:** Revisit if remote backends become first-class.
+- **Status:** ACTIVE
+- **Links:** N/A
 ### [2025-10-15] admin-config-cleanup
 
 - **Context:** Admin UI retained FastAPI branding and referenced a non-existent restart endpoint; config selectors omitted voice, adapter, and source.
