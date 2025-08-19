@@ -1,8 +1,7 @@
 import asyncio
-import importlib.util
+import importlib
 import os
 import sys
-from pathlib import Path
 
 import httpx
 
@@ -16,11 +15,7 @@ from Morpheus_Client.orchestrator.core import Orchestrator
 
 
 def load_app():
-    spec = importlib.util.spec_from_file_location(
-        "orfastapi_app", Path("Orpheus-FastAPI/app.py")
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = importlib.import_module("Morpheus_Client.server")
     return module
 
 

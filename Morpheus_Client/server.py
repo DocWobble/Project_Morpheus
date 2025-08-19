@@ -224,6 +224,13 @@ async def update_config(request: Request) -> JSONResponse:
     )
 
 
+async def stats(request: Request) -> JSONResponse:
+    """Return the current orchestrator timeline for live monitoring."""
+
+    timeline = [] if current_orchestrator is None else current_orchestrator.timeline
+    return JSONResponse({"timeline": timeline})
+
+
 async def barge_in(request: Request) -> JSONResponse:  # pragma: no cover - simple
     if current_orchestrator:
         current_orchestrator.signal_barge_in()
@@ -248,6 +255,7 @@ routes = [
     WebSocketRoute("/ws/tts", tts_ws),
     Route("/adapters", get_adapters, methods=["GET"]),
     Route("/sources", get_sources, methods=["GET"]),
+    Route("/stats", stats, methods=["GET"]),
     Route("/config", update_config, methods=["POST"]),
     Route("/barge-in", barge_in, methods=["POST"]),
     WebSocketRoute("/ws/barge-in", barge_in_ws),

@@ -18,6 +18,17 @@
 - **Links:** <PRs, scenes, interface entries, goal names>
 
 _(New entries go on top. Keep each under ~20 lines.)_
+### [2025-09-18] retire-orfastapi
+
+- **Context:** A legacy FastAPI module duplicated the unified Morpheus Client server.
+- **Decision:** Remove the legacy module, migrate remaining assets, and update start scripts and docs.
+- **Alternatives:** Keep the old module alongside the new server.
+- **Trade-offs:** Loss of historical code; any missing functionality must be re-added to the client.
+- **Scope:** start scripts, tests, documentation, `Morpheus_Client/admin` assets.
+- **Impact:** Single launch path via `main.py`; no lingering imports of the removed module.
+- **TTL / Review:** Revisit if a separate API service is required again.
+- **Status:** active
+- **Links:** n/a
 ### [2025-09-06] consolidate-requirements
 
 - **Context:** Multiple hardware-specific requirement files complicated installation.
@@ -31,11 +42,11 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Links:** goal unified-dependency-management
 ### [2025-09-01] single-service-architecture
 
-- **Context:** Prior repos split FastAPI, orchestrator, and admin surfaces; deployment required coordinating multiple services.
-- **Decision:** Consolidate into one FastAPI service (`Orpheus-FastAPI`) exposing `/stats`, `/config`, and `/admin` with `.env`-based configuration.
+- **Context:** Prior repos split orchestration and admin surfaces; deployment required coordinating multiple services.
+- **Decision:** Consolidate into one service exposing `/stats`, `/config`, and `/admin` with `.env`-based configuration.
 - **Alternatives:** Maintain separate processes for TTS generation, control plane, and UI; shell scripts per component.
 - **Trade-offs:** Sacrifices modular scaling but simplifies local runs and scene coverage.
-- **Scope:** `Orpheus-FastAPI/app.py`, runtime config paths, admin endpoints.
+- **Scope:** `Morpheus_Client/server.py`, runtime config paths, admin endpoints.
 - **Impact:** Enables standalone orchestrator, admin interface, and direct inference integration.
 - **TTL / Review:** Revisit when horizontal scaling or process isolation is required.
 - **Status:** ACTIVE
@@ -102,19 +113,19 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Links:** goal result-based-login
 ### [2025-09-02] central-config-module
 
-- **Context:** configuration helpers were duplicated across `main.py` and `Orpheus-FastAPI/app.py`.
+- **Context:** configuration helpers were duplicated across `main.py` and the server module.
 - **Decision:** centralize env file utilities and config API routes in `Morpheus_Client.config`.
 - **Alternatives:** keep separate implementations in each module.
 - **Trade-offs:** introduces a new package; minor import overhead.
-- **Scope:** `Morpheus_Client/config.py`, `main.py`, `Orpheus-FastAPI/app.py`.
+- **Scope:** `Morpheus_Client/config.py`, `main.py`, `Morpheus_Client/server.py`.
 - **Impact:** shared configuration logic and API surface; easier future reuse.
 - **TTL / Review:** revisit when configuration loading changes.
 - **Status:** active
 - **Links:** n/a
 ### [2025-08-18] morpheus-client-endpoints
 - **Context:** Morpheus Client lacked introspection APIs for voices and adapters.
-- **Decision:** Add `/v1/audio/voices` and `/adapters` endpoints reusing Orpheus-FastAPI logic.
-- **Alternatives:** Rely solely on Orpheus-FastAPI for capability discovery.
+- **Decision:** Add `/v1/audio/voices` and `/adapters` endpoints reusing logic from the legacy service.
+- **Alternatives:** Rely solely on that separate service for capability discovery.
 - **Trade-offs:** Duplicates minimal logic; adds another API surface to maintain.
 - **Scope:** `Morpheus_Client/server.py`, `INTERFACES.md`.
 - **Impact:** Clients can query available voices and adapter capabilities directly.
@@ -123,9 +134,9 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Links:** goal morpheus-client-introspection
 ### [2025-09-02] admin-static-mount
 
-- **Context:** The admin TTS UI lived only in Orpheus-FastAPI and wasn't available through the consolidated client.
+- **Context:** The admin TTS UI lived only in a separate service and wasn't available through the consolidated client.
 - **Decision:** Copy the template and favicon into `Morpheus_Client/admin` and serve them via `/admin`.
-- **Alternatives:** Continue relying on Orpheus-FastAPI for admin access.
+- **Alternatives:** Continue relying on that external service for admin access.
 - **Trade-offs:** Duplicates assets and requires future sync.
 - **Scope:** `Morpheus_Client/admin`, `Morpheus_Client/server.py`, `Morpheus_Client/config.py`.
 - **Impact:** Admin interface assets are accessible from the client service.
@@ -162,7 +173,7 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Decision:** Emit `{stage,duration_ms,result}` events, persist to `SCENES/_artifacts/timeline.json`, and expose `/stats` API.
 - **Alternatives:** Rely solely on logging without structured timeline.
 - **Trade-offs:** In-memory event list may grow without bounds.
-- **Scope:** `Morpheus_Client/orchestrator/core.py`, `scenes/utils.py`, `Orpheus-FastAPI/app.py`.
+- **Scope:** `Morpheus_Client/orchestrator/core.py`, `scenes/utils.py`, `Morpheus_Client/server.py`.
 - **Impact:** Enables live monitoring and replayable transcripts.
 - **TTL / Review:** review after initial deployment.
 - **Status:** active

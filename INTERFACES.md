@@ -63,7 +63,7 @@
 - **Observability:** emits `stats_requested` event
 - **Failure Modes:** `503` when orchestrator not initialized
 - **Owner:** repo owner
-- **Code:** `Orpheus-FastAPI/app.py`
+- **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-01: documented endpoint
 
@@ -98,7 +98,7 @@
 - **Observability:** access logged as `admin_access`
 - **Failure Modes:** `503` if service not ready
 - **Owner:** repo owner
-- **Code:** `Orpheus-FastAPI/app.py`
+- **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-01: documented endpoint
 
@@ -199,6 +199,6 @@
 - **Observability:** emits timeline-events
 - **Failure Modes:** empty list if orchestrator idle
 - **Owner:** repo owner
-- **Code:** `Orpheus-FastAPI/app.py`
+- **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-08: endpoint added
