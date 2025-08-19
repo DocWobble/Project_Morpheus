@@ -1,19 +1,34 @@
+"""ASGI server for Morpheus built on Starlette.
+
+This module provides a lightweight HTTP and WebSocket interface around the
+text‑to‑speech orchestrator.  It replaces the previous FastAPI implementation
+with a minimal Starlette router while preserving the public routes so existing
+clients continue to function.
+"""
+
+from __future__ import annotations
+
 import struct
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import JSONResponse, StreamingResponse
+from starlette.routing import Mount, Route, WebSocketRoute
+from starlette.staticfiles import StaticFiles
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from .config import ensure_env_file_exists
 from .tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
-from .tts_engine.inference import SAMPLE_RATE
 from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
-from .orchestrator.core import Orchestrator
+from .tts_engine.inference import SAMPLE_RATE
 from .orchestrator.buffer import PlaybackBuffer
 from .orchestrator.chunk_ladder import ChunkLadder
+from .orchestrator.core import Orchestrator
 from .orchestrator.stitcher import stitch_chunks
 from text_sources.registry import registry as source_registry
 
@@ -24,13 +39,14 @@ load_dotenv(override=True)
 
 def riff_header(sample_rate: int = SAMPLE_RATE) -> bytes:
     """Return a generic RIFF/WAVE header with unknown length."""
+
     byte_rate = sample_rate * 2
     return struct.pack(
-        '<4sI4s4sIHHIIHH4sI',
-        b'RIFF',
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF",
         0xFFFFFFFF,
-        b'WAVE',
-        b'fmt ',
+        b"WAVE",
+        b"fmt ",
         16,
         1,
         1,
@@ -38,20 +54,24 @@ def riff_header(sample_rate: int = SAMPLE_RATE) -> bytes:
         byte_rate,
         2,
         16,
-        b'data',
+        b"data",
         0xFFFFFFFF,
     )
 
 
 async def wav_streamer(pcm_iter, sample_rate: int = SAMPLE_RATE):
     """Wrap a PCM iterator with a WAV header for streaming."""
+
     yield riff_header(sample_rate)
     async for chunk in pcm_iter:
         yield chunk
 
 
-async def websocket_pcm_stream(websocket: WebSocket, pcm_iter, sample_rate: int = SAMPLE_RATE):
+async def websocket_pcm_stream(
+    websocket: WebSocket, pcm_iter, sample_rate: int = SAMPLE_RATE
+) -> None:
     """Send a WAV header followed by PCM frames over a WebSocket."""
+
     await websocket.send_bytes(riff_header(sample_rate))
     async for chunk in pcm_iter:
         await websocket.send_bytes(chunk)
@@ -73,6 +93,7 @@ async def orchestrated_pcm_stream(
     max_batch_chars: int = 1000,
 ):
     """Create an orchestrator-driven PCM stream."""
+
     global current_orchestrator
     name = adapter_name or current_adapter_name
     schema = (
@@ -90,20 +111,10 @@ async def orchestrated_pcm_stream(
     buffer = PlaybackBuffer(capacity_ms=1000)
     current_orchestrator = Orchestrator(adapter, buffer, ChunkLadder())
     stitched = stitch_chunks(
-        current_orchestrator.stream(),
-        sample_rate=SAMPLE_RATE,
+        current_orchestrator.stream(), sample_rate=SAMPLE_RATE
     )
     async for chunk in stitched:
         yield chunk.pcm
-
-
-# FastAPI application
-app = FastAPI(title="Core TTS Service")
-app.mount(
-    "/admin",
-    StaticFiles(directory=Path(__file__).resolve().parent / "admin", html=True),
-    name="admin",
-)
 
 
 class SpeechRequest(BaseModel):
@@ -120,15 +131,21 @@ class ConfigUpdate(BaseModel):
     source: str | None = None
 
 
-@app.post("/v1/audio/speech")
-async def create_speech_api(request: SpeechRequest):
+async def create_speech_api(request: Request) -> StreamingResponse:
     """Generate speech from text via orchestrator."""
-    if not request.input:
+
+    try:
+        payload = SpeechRequest(**await request.json())
+    except ValidationError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not payload.input:
         raise HTTPException(status_code=400, detail="Missing input text")
-    use_batching = len(request.input) > 1000
+
+    use_batching = len(payload.input) > 1000
     pcm_stream = orchestrated_pcm_stream(
-        prompt=request.input,
-        voice=request.voice,
+        prompt=payload.input,
+        voice=payload.voice,
         use_batching=use_batching,
         max_batch_chars=1000,
     )
@@ -138,41 +155,52 @@ async def create_speech_api(request: SpeechRequest):
     )
 
 
-@app.get("/v1/audio/voices")
-async def list_voices():
+async def list_voices(request: Request) -> JSONResponse:  # pragma: no cover - simple
     """Return list of available voices."""
+
     if not AVAILABLE_VOICES:
         raise HTTPException(status_code=404, detail="No voices available")
-    return JSONResponse(content={"status": "ok", "voices": AVAILABLE_VOICES})
+    return JSONResponse({"status": "ok", "voices": AVAILABLE_VOICES})
 
 
-@app.websocket("/ws/tts")
-async def tts_ws(websocket: WebSocket, prompt: str, voice: str | None = None):
+async def tts_ws(websocket: WebSocket) -> None:
     """Stream synthesized audio over WebSocket."""
+
     await websocket.accept()
     try:
+        prompt = websocket.query_params.get("prompt") or ""
+        if not prompt:
+            await websocket.close(code=1008)
+            return
+        voice = websocket.query_params.get("voice")
         pcm_stream = orchestrated_pcm_stream(prompt=prompt, voice=voice)
         await websocket_pcm_stream(websocket, pcm_stream, sample_rate=SAMPLE_RATE)
-    except WebSocketDisconnect:
+    except WebSocketDisconnect:  # pragma: no cover - network race
         pass
 
 
-@app.get("/adapters")
-async def get_adapters():
+async def get_adapters(request: Request) -> JSONResponse:
     """Expose capability descriptors for all available adapters."""
-    return adapter_registry.available()
+
+    return JSONResponse(adapter_registry.available())
 
 
-@app.get("/sources")
-async def get_sources():
+async def get_sources(request: Request) -> JSONResponse:
     """Expose capability descriptors for all registered text sources."""
-    return source_registry.available()
+
+    return JSONResponse(source_registry.available())
 
 
-@app.post("/config")
-async def update_config(cfg: ConfigUpdate):
+async def update_config(request: Request) -> JSONResponse:
     """Update active adapter, voice schema or text source."""
+
     global current_adapter_name, current_voice, current_source_name
+
+    try:
+        cfg = ConfigUpdate(**await request.json())
+    except ValidationError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     available = adapter_registry.available()
     if cfg.adapter:
         if cfg.adapter not in available:
@@ -187,22 +215,22 @@ async def update_config(cfg: ConfigUpdate):
         current_source_name = cfg.source
     if current_orchestrator:
         current_orchestrator.signal_barge_in()
-    return {
-        "adapter": current_adapter_name,
-        "voice": current_voice.dict(),
-        "source": current_source_name,
-    }
+    return JSONResponse(
+        {
+            "adapter": current_adapter_name,
+            "voice": current_voice.model_dump(),
+            "source": current_source_name,
+        }
+    )
 
 
-@app.post("/barge-in")
-async def barge_in():
+async def barge_in(request: Request) -> JSONResponse:  # pragma: no cover - simple
     if current_orchestrator:
         current_orchestrator.signal_barge_in()
-    return JSONResponse(content={"status": "ok"})
+    return JSONResponse({"status": "ok"})
 
 
-@app.websocket("/ws/barge-in")
-async def barge_in_ws(websocket: WebSocket):
+async def barge_in_ws(websocket: WebSocket) -> None:
     await websocket.accept()
     try:
         while True:
@@ -210,12 +238,34 @@ async def barge_in_ws(websocket: WebSocket):
             if current_orchestrator:
                 current_orchestrator.signal_barge_in()
                 await websocket.send_text("ok")
-    except WebSocketDisconnect:
+    except WebSocketDisconnect:  # pragma: no cover - network race
         pass
+
+
+routes = [
+    Route("/v1/audio/speech", create_speech_api, methods=["POST"]),
+    Route("/v1/audio/voices", list_voices, methods=["GET"]),
+    WebSocketRoute("/ws/tts", tts_ws),
+    Route("/adapters", get_adapters, methods=["GET"]),
+    Route("/sources", get_sources, methods=["GET"]),
+    Route("/config", update_config, methods=["POST"]),
+    Route("/barge-in", barge_in, methods=["POST"]),
+    WebSocketRoute("/ws/barge-in", barge_in_ws),
+    Mount(
+        "/admin",
+        app=StaticFiles(directory=Path(__file__).resolve().parent / "admin", html=True),
+        name="admin",
+    ),
+]
+
+
+app = Starlette(routes=routes)
 
 
 def start_server(host: str = "0.0.0.0", port: int = 5005) -> None:
     """Start the Morpheus client API and admin server using uvicorn."""
+
     import uvicorn
 
     uvicorn.run(app, host=host, port=port)
+

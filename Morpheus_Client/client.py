@@ -20,8 +20,11 @@ class Client:
     async def stream_rest(self, text: str, voice: str = DEFAULT_VOICE) -> AsyncGenerator[bytes, None]:
         """Stream WAV bytes from the REST endpoint."""
         url = f"{self.base_url}/v1/audio/speech"
+        headers = {"Accept": "audio/wav"}
         async with httpx.AsyncClient() as client:
-            async with client.stream("POST", url, json={"input": text, "voice": voice}) as resp:
+            async with client.stream(
+                "POST", url, json={"input": text, "voice": voice}, headers=headers
+            ) as resp:
                 async for chunk in resp.aiter_bytes():
                     yield chunk
 
