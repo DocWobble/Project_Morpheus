@@ -143,3 +143,14 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** n/a
 - **Linked Decisions:** morpheus-client-endpoints
 - **Notes:** none
+
+### Capability: streaming-probes
+- **Purpose:** Guard streaming orchestrator behaviour for cold start, long reads, adapter swaps and barge-in.
+- **Scope:** `scenes/`, `SCENES/streaming`, `pytest.ini`.
+- **Shape:** Scenes assert non-negative buffer depth, warm-up latency decay and adapter transitions.
+- **Compatibility:** no flags; pytest scenes gate merges.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `SCENES/streaming/*`
+- **Linked Decisions:** [2025-09-06] streaming-scene-harness
+- **Notes:** artifacts in `SCENES/_artifacts/streaming`

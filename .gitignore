@@ -5,3 +5,4 @@
 **/.venv/
 # Ignore Python cache directories
 **/__pycache__/
+SCENES/_artifacts/

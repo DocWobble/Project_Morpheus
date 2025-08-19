@@ -1,44 +1,32 @@
-"""Open-ended scenario tests producing audit artefacts.
-
-If the environment variable ``SCENES_ARTIFACT_DIR`` is set, the generated
-timeline JSON and WAV files are written there so they can be collected by CI
-or inspected manually.  Otherwise they are created inside pytest's temporary
-directory like a normal unit test.
-"""
-
+"""Streaming scene tests verifying buffer and latency shapes."""
 import os
 from pathlib import Path
 
 import pytest
 
-from scenes import barge_in, breathing_room, long_read, mid_stream_swap
+from scenes import barge_in, cold_start, long_read, mid_stream_swap
 
 
 @pytest.fixture
 def artifact_dir(tmp_path):
-    """Return output directory for scene artefacts.
-
-    The default is pytest's ``tmp_path`` but callers may override this by
-    setting ``SCENES_ARTIFACT_DIR`` in the environment.
-    """
-
     base = os.environ.get("SCENES_ARTIFACT_DIR")
     if base:
         path = Path(base)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-    return tmp_path
+    else:
+        path = Path("SCENES/_artifacts/streaming")
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
-def test_breathing_room(artifact_dir):
-    timeline_path, wav_path, info = breathing_room.run(artifact_dir)
+def test_cold_start(artifact_dir):
+    timeline_path, wav_path, info = cold_start.run(artifact_dir)
     assert timeline_path.exists()
     assert wav_path.exists()
     timeline = info["timeline"]
     assert len(timeline) >= 2
-    assert timeline[0]["chunk_id"] == 0
-    assert "token_window" in timeline[0]
-    assert "render_ms" in timeline[0]
+    first, second = timeline[0], timeline[1]
+    assert first["render_ms"] > second["render_ms"]
+    assert all(t["buffer_ms"] >= 0 for t in timeline)
 
 
 def test_long_read(artifact_dir):
@@ -48,7 +36,7 @@ def test_long_read(artifact_dir):
     timeline = info["timeline"]
     assert len(timeline) >= 50
     durations = {t["duration_ms"] for t in timeline}
-    assert len(durations) == 1  # converged chunk size
+    assert len(durations) == 1
     assert all(t["buffer_ms"] >= 0 for t in timeline)
 
 
@@ -61,6 +49,7 @@ def test_mid_stream_swap(artifact_dir):
     idx = adapters.index("adapter_b")
     assert all(a == "adapter_a" for a in adapters[:idx])
     assert all(a == "adapter_b" for a in adapters[idx:])
+    assert all(t["buffer_ms"] >= 0 for t in info["timeline"])
 
 
 def test_barge_in(artifact_dir):
@@ -69,3 +58,4 @@ def test_barge_in(artifact_dir):
     assert wav_path.exists()
     assert info["reset_called"]
     assert len(info["timeline"]) < info["planned_chunks"]
+    assert all(t["buffer_ms"] >= 0 for t in info["timeline"])

@@ -18,6 +18,18 @@
 - **Links:** <PRs, scenes, interface entries, goal names>
 
 _(New entries go on top. Keep each under ~20 lines.)_
+### [2025-09-06] streaming-scene-harness
+
+- **Context:** Streaming behaviour lacked automated probes for buffer depth and latency.
+- **Decision:** Add streaming scene scripts and pytest coverage for cold start, long read, mid-stream swap and barge-in.
+- **Alternatives:** Rely on manual testing or unit tests without artifacts.
+- **Trade-offs:** Slightly longer CI execution time.
+- **Scope:** `scenes/`, `SCENES/streaming`, `pytest.ini`.
+- **Impact:** CI captures artifacts and asserts streaming shapes guarding regressions.
+- **TTL / Review:** Revisit when streaming API or adapters change.
+- **Status:** ACTIVE
+- **Links:** goal streaming-probes
+
 ### [2025-09-01] single-service-architecture
 
 - **Context:** Prior repos split FastAPI, orchestrator, and admin surfaces; deployment required coordinating multiple services.
