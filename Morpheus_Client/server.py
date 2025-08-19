@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .config import ensure_env_file_exists, router as config_router
+from .config import ensure_env_file_exists
 from .tts_engine import AVAILABLE_VOICES, DEFAULT_VOICE
 from .tts_engine.inference import SAMPLE_RATE
 from .tts_engine.adapter_registry import VoiceSchema, registry as adapter_registry
@@ -15,6 +15,7 @@ from .orchestrator.core import Orchestrator
 from .orchestrator.buffer import PlaybackBuffer
 from .orchestrator.chunk_ladder import ChunkLadder
 from .orchestrator.stitcher import stitch_chunks
+from text_sources.registry import registry as source_registry
 
 # Ensure environment is initialized
 ensure_env_file_exists()
@@ -60,6 +61,7 @@ async def websocket_pcm_stream(websocket: WebSocket, pcm_iter, sample_rate: int 
 current_orchestrator: Orchestrator | None = None
 current_adapter_name = "orpheus"
 current_voice = VoiceSchema(voice=DEFAULT_VOICE)
+current_source_name = "cli_pipe"
 
 
 async def orchestrated_pcm_stream(
@@ -97,7 +99,6 @@ async def orchestrated_pcm_stream(
 
 # FastAPI application
 app = FastAPI(title="Core TTS Service")
-app.include_router(config_router)
 app.mount(
     "/admin",
     StaticFiles(directory=Path(__file__).resolve().parent / "admin", html=True),
@@ -116,6 +117,7 @@ class SpeechRequest(BaseModel):
 class ConfigUpdate(BaseModel):
     adapter: str | None = None
     voice: VoiceSchema | None = None
+    source: str | None = None
 
 
 @app.post("/v1/audio/speech")
@@ -161,10 +163,16 @@ async def get_adapters():
     return adapter_registry.available()
 
 
+@app.get("/sources")
+async def get_sources():
+    """Expose capability descriptors for all registered text sources."""
+    return source_registry.available()
+
+
 @app.post("/config")
 async def update_config(cfg: ConfigUpdate):
-    """Update active adapter or voice schema."""
-    global current_adapter_name, current_voice
+    """Update active adapter, voice schema or text source."""
+    global current_adapter_name, current_voice, current_source_name
     available = adapter_registry.available()
     if cfg.adapter:
         if cfg.adapter not in available:
@@ -172,11 +180,17 @@ async def update_config(cfg: ConfigUpdate):
         current_adapter_name = cfg.adapter
     if cfg.voice:
         current_voice = cfg.voice
+    if cfg.source:
+        sources = source_registry.available()
+        if cfg.source not in sources:
+            raise HTTPException(status_code=404, detail="Unknown source")
+        current_source_name = cfg.source
     if current_orchestrator:
         current_orchestrator.signal_barge_in()
     return {
         "adapter": current_adapter_name,
         "voice": current_voice.dict(),
+        "source": current_source_name,
     }
 
 
