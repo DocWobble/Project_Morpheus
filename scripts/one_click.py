@@ -50,13 +50,8 @@ def install_miniforge(os_name: str, arch: str) -> None:
             subprocess.check_call(["bash", str(installer), "-b"])
     print("Miniforge installation complete")
 
-def detect_gpu() -> bool:
-    return shutil.which("nvidia-smi") is not None
-
 def pick_requirements() -> Path:
-    req_dir = Path(__file__).resolve().parent.parent / "requirements" / "full"
-    filename = "gpu.txt" if detect_gpu() else "cpu.txt"
-    return req_dir / filename
+    return Path(__file__).resolve().parent.parent / "requirements.txt"
 
 def install_requirements(req_file: Path) -> None:
     print(f"Installing dependencies from {req_file}")

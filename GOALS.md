@@ -156,6 +156,18 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** morpheus-client-endpoints
 - **Notes:** none
 
+### Capability: unified-dependency-management
+
+- **Purpose:** Provide a single pinned dependency file with hardware guidance.
+- **Scope:** requirements.txt, setup scripts, README.
+- **Shape:** Installing on any hardware uses the same base file; GPU/CPU differences are documented.
+- **Compatibility:** GPU extras installed manually; no migrations.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** TBD
+- **Linked Decisions:** [2025-09-06] consolidate-requirements
+- **Notes:** UI build prerequisites documented.
+                                                           
 ### Capability: pluggable-text-sources
 
 - **Purpose:** Consume text from interchangeable sources like WebSocket feeds or CLI pipes.
@@ -167,3 +179,4 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** TBD
 - **Linked Decisions:** [2025-09-14] text-source-adapters
 - **Notes:** initial adapters for WebSocket, HTTP polling and CLI pipe.
+
