@@ -7,13 +7,13 @@ This package contains the core components for audio generation:
 """
 
 # Make key components available at package level
+from .remote_backend import generate_speech_from_api
 from .inference import (
-    generate_speech_from_api,
     AVAILABLE_VOICES,
     DEFAULT_VOICE,
     VOICE_TO_LANGUAGE,
     AVAILABLE_LANGUAGES,
-    list_available_voices
+    list_available_voices,
 )
 
 # Export adapter for orchestrator integration

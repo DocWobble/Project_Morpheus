@@ -87,7 +87,7 @@ async def websocket_pcm_stream(
 
 # Global orchestrator state for barge-in
 current_orchestrator: Orchestrator | None = None
-current_adapter_name = "orpheus"
+current_adapter_name = "orpheus_cpp"
 current_voice = VoiceSchema(voice=DEFAULT_VOICE)
 current_source_name = "cli_pipe"
 current_source: TextSource | None = None
@@ -158,7 +158,7 @@ async def orchestrated_pcm_stream(
 
 class SpeechRequest(BaseModel):
     input: str
-    model: str = "orpheus"
+    model: str = "orpheus_cpp"
     voice: str = DEFAULT_VOICE
     response_format: str = "wav"
     speed: float = 1.0

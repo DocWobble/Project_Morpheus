@@ -5,8 +5,9 @@ from __future__ import annotations
 Each adapter provides a :func:`describe` method to advertise its
 capabilities and a voice mapping function that projects the abstract
 voice schema into backend specific parameters.  The registry exposes a
-simple factory for constructing adapters by name which is used by the
-FastAPI application to enable hot swapping of engines at runtime.
+simple factory for constructing adapters by name.  The bundled registry
+ships with a single entry: ``orpheus_cpp`` which uses the in-process
+``orpheus_cpp`` engine for synthesis.
 """
 
 from dataclasses import dataclass
@@ -48,7 +49,7 @@ def _orpheus_describe() -> Dict[str, Any]:
     """Return capability descriptor for the Orpheus adapter."""
 
     return {
-        "name": "orpheus",
+        "name": "orpheus_cpp",
         "streaming": True,
         "unit": "ms",
         "granularity": [8, 12, 16, 24, 32, 48, 64],
@@ -97,10 +98,10 @@ class AdapterRegistry:
         return spec.constructor(prompt=prompt, **params)
 
 
-# Global registry instance pre-populated with the default Orpheus adapter
+# Global registry instance pre-populated with the default orpheus_cpp adapter
 registry = AdapterRegistry()
 registry.register(
-    "orpheus", OrpheusAdapter, _orpheus_describe, _orpheus_voice_mapper
+    "orpheus_cpp", OrpheusAdapter, _orpheus_describe, _orpheus_voice_mapper
 )
 
 __all__ = ["VoiceSchema", "AdapterRegistry", "registry"]

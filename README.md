@@ -10,6 +10,10 @@ Single ASGI service exposing:
 - `GET /stats` – returns runtime telemetry and transcript history
 - `GET /admin` – serves operator dashboard
 
+The adapter registry defaults to the in-process `orpheus_cpp` engine for
+speech synthesis; remote backends are optional and reside in a separate
+module.
+
 ## Installation
 
 ### Prerequisites
