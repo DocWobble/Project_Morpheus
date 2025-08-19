@@ -99,9 +99,9 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 
 ### Capability: standalone-orchestrator
 
-- **Purpose:** Provide a self-contained orchestrator service that streams audio via Orpheus-FastAPI.
-- **Scope:** `Orpheus-FastAPI/app.py`, adapter registry.
-- **Shape:** single FastAPI process coordinates adapters and exposes streaming endpoints.
+- **Purpose:** Provide a self-contained orchestrator service that streams audio via the unified client server.
+- **Scope:** `Morpheus_Client/server.py`, adapter registry.
+- **Shape:** single service coordinates adapters and exposes streaming endpoints.
 - **Compatibility:** configured through `.env` and `/config`; no migrations yet.
  - **Status:** active
 - **Owner:** repo owner
@@ -136,7 +136,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 ### Capability: shared-config-module
 
 - **Purpose:** Deduplicate environment file utilities across services.
-- **Scope:** `Morpheus_Client.config`, `main.py`, `Orpheus-FastAPI/app.py`.
+- **Scope:** `Morpheus_Client.config`, `main.py`, `Morpheus_Client/server.py`.
 - **Shape:** All components load and persist configuration through a single module.
 - **Compatibility:** uses existing `.env` format; no migrations.
 - **Status:** active
