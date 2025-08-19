@@ -227,3 +227,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** –
 
+### [2025-09-26] fastapi-cleanup
+
+- **Context:** Starlette migration left behind FastAPI-specific imports and dependencies.
+- **Decision:** Purge FastAPI from tests and requirements; simplify config utilities to avoid FastAPI.
+- **Alternatives:** Retain FastAPI modules alongside Starlette.
+- **Trade-offs:** Fewer helper utilities from FastAPI.
+- **Scope:** `requirements.txt`, `tests/test_stats_endpoint.py`, `Morpheus_Client/config.py`.
+- **Impact:** Leaner dependency graph and tests target the Starlette ASGI app.
+- **TTL / Review:** revisit if configuration endpoints need richer framework support.
+- **Status:** active
+- **Links:** –
+

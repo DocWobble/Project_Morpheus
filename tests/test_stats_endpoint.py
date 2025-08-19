@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 import os
 import sys
 
@@ -8,15 +7,12 @@ import httpx
 # Ensure repo root on path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from Morpheus_Client import app
+import Morpheus_Client.server as server
 from Morpheus_Client.orchestrator.adapter import AudioChunk, TTSAdapter
 from Morpheus_Client.orchestrator.buffer import PlaybackBuffer
 from Morpheus_Client.orchestrator.chunk_ladder import ChunkLadder
 from Morpheus_Client.orchestrator.core import Orchestrator
-
-
-def load_app():
-    module = importlib.import_module("Morpheus_Client.server")
-    return module
 
 
 class DummyAdapter(TTSAdapter):
@@ -33,10 +29,9 @@ class DummyAdapter(TTSAdapter):
 
 
 def test_stats_endpoint_exposes_timeline():
-    module = load_app()
     adapter = DummyAdapter([AudioChunk(pcm=b"", duration_ms=10, eos=True)])
     orch = Orchestrator(adapter, PlaybackBuffer(capacity_ms=500), ChunkLadder())
-    module.current_orchestrator = orch
+    server.current_orchestrator = orch
 
     async def run():
         async for _ in orch.stream():
@@ -45,7 +40,7 @@ def test_stats_endpoint_exposes_timeline():
     asyncio.run(run())
 
     async def fetch():
-        transport = httpx.ASGITransport(app=module.app)
+        transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
             return await client.get("/stats")
 
@@ -54,3 +49,4 @@ def test_stats_endpoint_exposes_timeline():
     body = resp.json()
     assert "timeline" in body
     assert isinstance(body["timeline"], list)
+
