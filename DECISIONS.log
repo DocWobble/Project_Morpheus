@@ -18,6 +18,17 @@
 - **Links:** <PRs, scenes, interface entries, goal names>
 
 _(New entries go on top. Keep each under ~20 lines.)_
+### [2025-09-06] consolidate-requirements
+
+- **Context:** Multiple hardware-specific requirement files complicated installation.
+- **Decision:** Collapse them into a single pinned requirements.txt with hardware notes and update setup scripts.
+- **Alternatives:** Keep separate requirement sets per platform.
+- **Trade-offs:** Users must manually install GPU extras.
+- **Scope:** requirements.txt, scripts/install.py, scripts/one_click.py, README.md.
+- **Impact:** Simplifies dependency management and documentation.
+- **TTL / Review:** Revisit if automated GPU package resolution is needed.
+- **Status:** ACTIVE
+- **Links:** goal unified-dependency-management
 ### [2025-09-01] single-service-architecture
 
 - **Context:** Prior repos split FastAPI, orchestrator, and admin surfaces; deployment required coordinating multiple services.
