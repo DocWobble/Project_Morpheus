@@ -64,7 +64,12 @@ def get_current_config() -> Dict[str, str]:
 
 
 def save_config(data: Dict[str, str]) -> None:
-    """Persist configuration data to ``.env`` after type coercion."""
+    """Persist configuration data to ``.env`` and ``~/.morpheus/config``.
+
+    Numeric and float fields are coerced to the correct type before writing.
+    The user's home directory config is created if missing so that
+    configuration survives across repo checkouts.
+    """
 
     for key, value in data.items():
         if key in {
@@ -83,7 +88,15 @@ def save_config(data: Dict[str, str]) -> None:
             except (ValueError, TypeError):
                 pass
 
+    # Prepare lines once so both targets receive identical content
+    lines = [f"{key}={value}\n" for key, value in data.items()]
+
     with open(".env", "w") as fh:
-        for key, value in data.items():
-            fh.write(f"{key}={value}\n")
+        fh.writelines(lines)
+
+    # Mirror config to ~/.morpheus/config
+    home_cfg_dir = os.path.expanduser("~/.morpheus")
+    os.makedirs(home_cfg_dir, exist_ok=True)
+    with open(os.path.join(home_cfg_dir, "config"), "w") as fh:
+        fh.writelines(lines)
 

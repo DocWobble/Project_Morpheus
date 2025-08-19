@@ -218,3 +218,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** `tests/test_stats_endpoint.py::test_stats_endpoint_exposes_timeline`, `tests/test_scenes.py::test_breathing_room`
 - **Linked Decisions:** [2025-10-30] orchestrator-transcripts
 - **Notes:** transcripts list grows without bound
+
+### Capability: user-config-precedence
+
+- **Purpose:** Allow persistent user configuration to override repo defaults.
+- **Scope:** `Morpheus_Client/config.py`, `scripts/start.py`, `.env.example`.
+- **Shape:** Values from `~/.morpheus/config` override `.env`; missing keys fall back to repository defaults.
+- **Compatibility:** falls back to `.env` when user config is absent.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_text_sources.py`
+- **Linked Decisions:** [2025-08-19] user-config-precedence
+- **Notes:** home directory config created on save
