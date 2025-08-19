@@ -8,7 +8,9 @@ clients continue to function.
 
 from __future__ import annotations
 
+import asyncio
 import struct
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,7 @@ from .orchestrator.buffer import PlaybackBuffer
 from .orchestrator.chunk_ladder import ChunkLadder
 from .orchestrator.core import Orchestrator
 from .orchestrator.stitcher import stitch_chunks
+from text_sources import TextSource
 from text_sources.registry import registry as source_registry
 
 # Ensure environment is initialized
@@ -82,6 +85,36 @@ current_orchestrator: Orchestrator | None = None
 current_adapter_name = "orpheus"
 current_voice = VoiceSchema(voice=DEFAULT_VOICE)
 current_source_name = "cli_pipe"
+current_source: TextSource | None = None
+current_source_task: asyncio.Task | None = None
+
+
+async def _consume_source(source: TextSource) -> None:
+    """Continuously feed text from a source into the orchestrator."""
+
+    try:
+        async for text in source.stream():
+            pcm_stream = orchestrated_pcm_stream(prompt=text, voice=None)
+            async for _ in pcm_stream:
+                pass
+    except asyncio.CancelledError:  # pragma: no cover - task cancel
+        pass
+
+
+async def init_source(name: str, **options: Any) -> None:
+    """Instantiate and begin consuming from a text source."""
+
+    global current_source_name, current_source, current_source_task
+    current_source_name = name
+    if name == "cli_pipe" and "reader" not in options:
+        options["reader"] = asyncio.StreamReader()
+    source = source_registry.create(name, **options)
+    current_source = source
+    if current_source_task:
+        current_source_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await current_source_task
+    current_source_task = asyncio.create_task(_consume_source(source))
 
 
 async def orchestrated_pcm_stream(
@@ -194,7 +227,7 @@ async def get_config(request: Request) -> JSONResponse:
 async def update_config(request: Request) -> JSONResponse:
     """Update configuration and persist changes to `.env`."""
 
-    global current_adapter_name, current_voice, current_source_name
+    global current_adapter_name, current_voice
 
     try:
         data = await request.json()
@@ -216,17 +249,20 @@ async def update_config(request: Request) -> JSONResponse:
             current_voice = VoiceSchema(voice=voice)
 
     source = data.get("source")
+    source_cfg = data.get("source_config", {})
     if source:
         sources = source_registry.available()
         if source not in sources:
             raise HTTPException(status_code=404, detail="Unknown source")
-        current_source_name = source
+        await init_source(source, **source_cfg)
+    elif source_cfg and current_source_name:
+        await init_source(current_source_name, **source_cfg)
 
     if current_orchestrator:
         current_orchestrator.signal_barge_in()
 
     env_cfg = get_current_config()
-    persist = data.copy()
+    persist = {k: v for k, v in data.items() if k != "source_config"}
     if voice:
         persist["voice"] = current_voice.voice
     env_cfg.update({k: str(v) if not isinstance(v, str) else v for k, v in persist.items()})
