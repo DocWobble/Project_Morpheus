@@ -1,7 +1,5 @@
 import asyncio
 import os
-import asyncio
-import os
 import sys
 import types
 
@@ -15,6 +13,7 @@ from text_sources.cli_pipe import CLIPipeSource
 from text_sources.http_poll import HTTPPollingSource
 from text_sources.websocket import WebSocketSource
 from Morpheus_Client.server import app
+from Morpheus_Client.config import get_current_config
 
 
 def test_cli_pipe_source():
@@ -70,13 +69,15 @@ def test_websocket_source():
     assert asyncio.run(run()) == ["one", "two"]
 
 
-def test_config_updates_source():
+def test_config_round_trip_persistence():
     async def run():
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            resp = await client.post("/config", json={"source": "cli_pipe"})
+            await client.post("/config", json={"source": "cli_pipe"})
+            resp = await client.get("/config")
             return resp
 
     resp = asyncio.run(run())
     assert resp.status_code == 200
     assert resp.json()["source"] == "cli_pipe"
+    assert get_current_config()["source"] == "cli_pipe"
