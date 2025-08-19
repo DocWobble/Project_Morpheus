@@ -92,6 +92,7 @@
   - 2025-10-09: added GET and persistence via `.env`
   - 2025-10-24: allow `source_config` for constructor options
   - 2025-08-19: mirror config to `~/.morpheus/config` and load it before `.env`
+  - 2025-10-30: validate and persist `ORPHEUS_TEMPERATURE`, `ORPHEUS_TOP_P`, `ORPHEUS_MAX_TOKENS`
 
 ### Surface: admin-endpoint
 - **Type:** API
