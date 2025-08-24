@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Refresh dependencies and relax version pins to minor ranges for patch updates
 - Add lightweight orchestrator smoke tests and runner script
 - Ignore Python bytecode caches and pytest cache
 
