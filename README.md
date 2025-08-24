@@ -4,15 +4,16 @@
 
 Single ASGI service exposing:
 
-- `POST /v1/text` – streams UTF-8 text chunks
+- `POST /v1/audio/speech` – streams WAV audio chunks
+- `GET /v1/audio/voices` – lists available voices
 - `GET /config` – returns current configuration
 - `POST /config` – updates adapter, voice, text source or env vars and persists
 - `GET /stats` – returns runtime telemetry and transcript history
 - `GET /admin` – serves operator dashboard
 
-The adapter registry defaults to a local text generator; remote backends are
-optional and reside in a separate module. Responses are streamed as text
-tokens rather than WAV files.
+The adapter registry defaults to a local speech synthesis adapter; remote backends are
+optional and reside in a separate module. Responses are streamed as WAV audio
+rather than text tokens.
 
 ## Installation
 
@@ -65,15 +66,16 @@ The service listens on `http://localhost:5005` and hosts the dashboard at
 `http://localhost:5005/admin`.
 
 ### Client
-Use the bundled client to consume streamed text:
+Use the bundled client to consume streamed audio:
 ```python
 import asyncio
 from Morpheus_Client import Client
 
 async def main():
     client = Client("http://localhost:5005")
-    async for chunk in client.stream_rest("Hello world"):
-        print(chunk.decode(), end="")
+    with open("output.wav", "wb") as f:
+        async for chunk in client.stream_rest("Hello world"):
+            f.write(chunk)
 
 asyncio.run(main())
 ```

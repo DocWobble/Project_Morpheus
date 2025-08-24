@@ -266,3 +266,4 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** n/a
 - **Linked Decisions:** consolidate-readmes
 - **Notes:** documents text-stream output and client/UI startup.
+- **Notes:** updated 2025-08-24 to describe WAV streaming endpoints.
