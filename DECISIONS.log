@@ -20,6 +20,18 @@
 _(New entries go on top. Keep each under ~20 lines.)_
 
 
+### [2025-12-10] start-dep-errors
+
+- **Context:** Importing `python-dotenv` or `orpheus_cpp` in `scripts/start.py` produced full tracebacks when missing.
+- **Decision:** Catch `ImportError` for these dependencies and exit with installation guidance, suppressing traceback chaining.
+- **Alternatives:** Allow raw `ImportError` to surface.
+- **Trade-offs:** Hides debugging detail at startup in favor of clarity for missing dependencies.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Impact:** Users see concise `pip install` instructions instead of stack traces.
+- **TTL / Review:** Revisit if dependency management or messaging changes.
+- **Status:** ACTIVE
+- **Links:** goal dotenv-startup-check, goal orpheus-cpp-startup-check
+
 ### [2025-12-09] canonical-installer
 
 - **Context:** Having both `scripts/install.py` and `scripts/one_click.py` caused confusion about the supported setup path.

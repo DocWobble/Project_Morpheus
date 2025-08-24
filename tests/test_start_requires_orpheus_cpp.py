@@ -17,4 +17,6 @@ def test_start_errors_when_orpheus_cpp_missing(monkeypatch):
     start = importlib.import_module("scripts.start")
     with pytest.raises(SystemExit) as exc:
         start.main()
-    assert "orpheus_cpp is required" in str(exc.value)
+    msg = str(exc.value)
+    assert "pip install orpheus-cpp" in msg
+    assert exc.value.__cause__ is None
