@@ -195,16 +195,16 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-09-19] start-entrypoint
 - **Notes:** none
 
-### Capability: orpheus-cpp-startup-check
+### Capability: llama-cpp-startup-check
 
 - **Purpose:** Fail fast when the local C++ bindings are missing.
 - **Scope:** `scripts/start.py`, `requirements.txt`, `README.md`.
-- **Shape:** Startup aborts with a descriptive error if `orpheus_cpp` cannot be imported.
+- **Shape:** Startup aborts with a descriptive error if `llama_cpp` cannot be imported.
 - **Compatibility:** additive; service does not launch without the binding.
 - **Status:** active
 - **Owner:** repo owner
-- **Linked Scenes:** `tests/test_start_requires_orpheus_cpp.py`
-- **Linked Decisions:** [2025-09-30] orpheus-cpp-required
+- **Linked Scenes:** `tests/test_start_requires_llama_cpp.py`
+- **Linked Decisions:** [2025-12-18] llama-cpp-default-adapter
 - **Notes:** build step may take several minutes
 
 ### Capability: dotenv-startup-check
@@ -342,7 +342,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Compatibility:** Standard pip environments; updates via version bump.
 - **Status:** active
 - **Owner:** repository owner
-- **Linked Scenes:** tests/test_start_requires_dotenv.py, tests/test_start_requires_orpheus_cpp.py
+- **Linked Scenes:** tests/test_start_requires_dotenv.py, tests/test_start_requires_llama_cpp.py
 - **Linked Decisions:** pin-core-dependencies
 - **Notes:** pins numpy <2 to match torch wheels.
 
@@ -358,15 +358,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-12-10] requirements-ci-validation
 - **Notes:** none
 
-### Capability: configurable-orpheus-context
+### Capability: configurable-llama-context
 
-- **Purpose:** Allow local TTS to set context length and GPU layer count to avoid llama context creation failures.
-- **Scope:** `Morpheus_Client/tts_engine/orpheus_local.py`
-- **Shape:** `_load_model_sync` reads `ORPHEUS_N_CTX` and `ORPHEUS_N_GPU_LAYERS`; defaults `n_ctx` to 8192.
+- **Purpose:** Allow local TTS to set model path, context length and GPU layer count to avoid context creation failures.
+- **Scope:** `Morpheus_Client/tts_engine/llama_local.py`
+- **Shape:** `_load_model_sync` reads `LLAMA_MODEL_PATH`, `LLAMA_N_CTX` and `LLAMA_N_GPU_LAYERS`; defaults to `model.gguf`, `n_ctx=8192` and `n_gpu_layers=0`.
 - **Compatibility:** defaults maintain previous behaviour when vars unset.
 - **Status:** active
 - **Owner:** repo owner
-- **Linked Scenes:** `tests/test_orpheus_model_config.py`
-- **Linked Decisions:** [2025-12-17] orpheus-default-n-ctx
+- **Linked Scenes:** `tests/test_llama_model_config.py`
+- **Linked Decisions:** [2025-12-17] llama-default-n-ctx
 - **Notes:** ensures TTS runs on CPU when GPU config missing
 

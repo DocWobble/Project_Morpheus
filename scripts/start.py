@@ -29,10 +29,10 @@ def main() -> None:
     3. ``.env`` (generated from ``.env.example``)
     """
     try:
-        import orpheus_cpp  # noqa: F401
+        import llama_cpp  # noqa: F401
     except ImportError:  # pragma: no cover - depends on optional dep
         raise SystemExit(
-            "Install `orpheus_cpp` via `pip install orpheus-cpp` for local synthesis."
+            "Install `llama_cpp` via `pip install llama-cpp-python` for local synthesis."
         )
     ensure_env_file_exists()
     # Load config files: OS env > ~/.morpheus/config > .env

@@ -34,15 +34,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 
 ### [2025-12-10] start-dep-errors
 
-- **Context:** Importing `python-dotenv` or `orpheus_cpp` in `scripts/start.py` produced full tracebacks when missing.
+- **Context:** Importing `python-dotenv` or `llama_cpp` in `scripts/start.py` produced full tracebacks when missing.
 - **Decision:** Catch `ImportError` for these dependencies and exit with installation guidance, suppressing traceback chaining.
 - **Alternatives:** Allow raw `ImportError` to surface.
 - **Trade-offs:** Hides debugging detail at startup in favor of clarity for missing dependencies.
-- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_llama_cpp.py`.
 - **Impact:** Users see concise `pip install` instructions instead of stack traces.
 - **TTL / Review:** Revisit if dependency management or messaging changes.
 - **Status:** ACTIVE
-- **Links:** goal dotenv-startup-check, goal orpheus-cpp-startup-check
+- **Links:** goal dotenv-startup-check, goal llama-cpp-startup-check
 
 ### [2025-12-09] canonical-installer
 
@@ -94,13 +94,13 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Links:** auto-venv-setup
 
 
-### [2025-08-24] orpheus-local-none-stop
+### [2025-08-24] local-none-stop
 
-- **Context:** `_stream_from_model` assumed the underlying iterator raised `StopIteration`; some `orpheus_cpp` iterators instead returned `None`, causing `TypeError` during unpacking.
+- **Context:** `_stream_from_model` assumed the underlying iterator raised `StopIteration`; some model iterators instead returned `None`, causing `TypeError` during unpacking.
 - **Decision:** Invoke `next` with a `None` sentinel inside a thread and break when `None` is returned, avoiding unpacking errors.
 - **Alternatives:** Keep try/except expecting `StopIteration`.
 - **Trade-offs:** Adapts to nonconformant iterators at the cost of deviating from the generator protocol.
-- **Scope:** `Morpheus_Client/tts_engine/orpheus_local.py`, tests.
+- **Scope:** `Morpheus_Client/tts_engine/llama_local.py`, tests.
 - **Impact:** Local TTS streaming terminates cleanly when the model signals completion by returning `None`.
 - **TTL / Review:** Revisit if upstream iterator behavior changes.
 - **Status:** ACTIVE
@@ -165,10 +165,10 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit if modules require dedicated docs again.
 - **Status:** active
 - **Links:** goal centralized-docs
-### [2025-10-24] orpheus-cpp-default
+-### [2025-10-24] llama-cpp-default
 
-- **Context:** Remote `ORPHEUS_API_URL` checks lingered despite local `orpheus_cpp` engine being the primary path.
-- **Decision:** Drop API URL requirements, isolate remote helpers, and register `orpheus_cpp` as the default adapter.
+- **Context:** Remote `ORPHEUS_API_URL` checks lingered despite local `llama_cpp` engine being the primary path.
+- **Decision:** Drop API URL requirements, isolate remote helpers, and register `llama_cpp` as the default adapter.
 - **Alternatives:** Keep mixed local/remote logic in `inference.py`.
 - **Trade-offs:** Remote API helpers move to a separate module requiring explicit import.
 - **Scope:** `Morpheus_Client/tts_engine`, `Morpheus_Client/server.py`, `README.md`.
@@ -187,17 +187,17 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** revisit when admin features grow.
 - **Status:** ACTIVE
 - **Links:** interfaces config-endpoint
-### [2025-09-30] orpheus-cpp-required
+### [2025-09-30] llama-cpp-required
 
-- **Context:** Starting the service without `orpheus_cpp` led to runtime failures during synthesis.
-- **Decision:** Pin `orpheus-cpp` and abort startup with a descriptive error when the module is missing.
+- **Context:** Starting the service without `llama_cpp` led to runtime failures during synthesis.
+- **Decision:** Pin `llama-cpp-python` and abort startup with a descriptive error when the module is missing.
 - **Alternatives:** Import on first use and fail lazily; rely on an external service for synthesis.
 - **Trade-offs:** Adds a native build step that increases installation time.
 - **Scope:** `requirements.txt`, `scripts/start.py`, `README.md`.
 - **Impact:** Predictable startup behaviour and clearer dependency expectations.
 - **TTL / Review:** Revisit if a pure-Python or remote backend becomes default.
 - **Status:** ACTIVE
-- **Links:** goal orpheus-cpp-startup-check, tests/test_start_requires_orpheus_cpp.py
+- **Links:** goal llama-cpp-startup-check, tests/test_start_requires_llama_cpp.py
 ### [2025-09-21] fastapi-migration
 
 - **Context:** Docs and configs still referenced FastAPI though the service now runs on a lightweight ASGI stack.
@@ -602,10 +602,10 @@ _(New entries go on top. Keep each under ~20 lines.)_
 ### [2025-08-24] start-dep-checks
 
 - **Context:** The start script raised raw tracebacks when optional dependencies like `python-dotenv` were missing.
-- **Decision:** Wrap imports of `python-dotenv` and `orpheus_cpp` with try/except blocks that exit with guidance to install missing packages.
+- **Decision:** Wrap imports of `python-dotenv` and `llama_cpp` with try/except blocks that exit with guidance to install missing packages.
 - **Alternatives:** Allow ImportErrors to propagate.
 - **Trade-offs:** Slightly more startup code; messages may become outdated.
-- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_llama_cpp.py`.
 - **Impact:** Users receive clear installation guidance instead of stack traces when dependencies are absent.
 - **TTL / Review:** Review when dependency handling changes.
 - **Status:** active
@@ -647,15 +647,34 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:**
 
-### [2025-12-17] orpheus-default-n-ctx
+### [2025-12-17] llama-default-n-ctx
 
-- **Context:** The local Orpheus TTS adapter instantiated `OrpheusCpp` without a context length, causing `Failed to create llama_context`.
-- **Decision:** Read `ORPHEUS_N_CTX` and `ORPHEUS_N_GPU_LAYERS` environment variables and pass them to `OrpheusCpp`, defaulting to `n_ctx=8192` and `n_gpu_layers=0`.
-- **Alternatives:** Modify the `orpheus_cpp` package upstream.
+- **Context:** The local Llama TTS adapter instantiated `llama_cpp.Llama` without a context length, causing `Failed to create llama_context`.
+- **Decision:** Read `LLAMA_MODEL_PATH`, `LLAMA_N_CTX` and `LLAMA_N_GPU_LAYERS` environment variables and pass them to `Llama`, defaulting to `model.gguf`, `n_ctx=8192` and `n_gpu_layers=0`.
+- **Alternatives:** Modify the `llama_cpp` package upstream.
 - **Trade-offs:** Adds environment variables; requires reload when changing values.
-- **Scope:** `Morpheus_Client/tts_engine/orpheus_local.py`, `tests/test_orpheus_model_config.py`, `GOALS.md`, `INTERFACES.md`.
+- **Scope:** `Morpheus_Client/tts_engine/llama_local.py`, `tests/test_llama_model_config.py`, `GOALS.md`, `INTERFACES.md`.
 - **Impact:** Local TTS starts on CPU and can offload layers to GPU when configured.
 - **TTL / Review:** Revisit if upstream exposes defaults.
 - **Status:** active
-- **Links:** goal configurable-orpheus-context
+- **Links:** goal configurable-llama-context
+
+### [2025-12-18] llama-cpp-default-adapter
+
+- **Context:** Migration away from the deprecated engine requires a
+  new local adapter and dependency.
+- **Decision:** Adopt `llama_cpp` as the default local
+  synthesis engine, updating server defaults, adapter registry, and startup
+  import checks.
+- **Alternatives:** Keep the existing adapter or stub out local synthesis.
+- **Trade-offs:** Users must install `llama-cpp-python`; legacy references may
+  break until updated.
+- **Scope:** `Morpheus_Client/tts_engine/llama_local.py`, `Morpheus_Client/server.py`,
+  `scripts/start.py`, tests.
+- **Impact:** Enables local synthesis via `llama_cpp` with configurable model
+  path and context.
+- **TTL / Review:** Revisit if upstream API changes or other engines become
+  default.
+- **Status:** active
+- **Links:** goal llama-cpp-startup-check
 

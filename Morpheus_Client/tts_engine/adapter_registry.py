@@ -6,8 +6,8 @@ Each adapter provides a :func:`describe` method to advertise its
 capabilities and a voice mapping function that projects the abstract
 voice schema into backend specific parameters.  The registry exposes a
 simple factory for constructing adapters by name.  The bundled registry
-ships with a single entry: ``orpheus_cpp`` which uses the in-process
-``orpheus_cpp`` engine for synthesis.
+ships with a single entry: ``llama_cpp`` which uses the in-process
+``llama_cpp`` engine for synthesis.
 """
 
 from dataclasses import dataclass
@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, Type
 
 from pydantic import BaseModel
 
-from .adapter import TTSAdapter as OrpheusAdapter
+from .adapter import TTSAdapter as LlamaAdapter
 from .inference import AVAILABLE_VOICES, DEFAULT_VOICE
 
 
@@ -36,8 +36,8 @@ class VoiceSchema(BaseModel):
     pace: str | None = None
 
 
-def _orpheus_voice_mapper(schema: VoiceSchema) -> Dict[str, Any]:
-    """Map a :class:`VoiceSchema` to Orpheus adapter parameters."""
+def _llama_voice_mapper(schema: VoiceSchema) -> Dict[str, Any]:
+    """Map a :class:`VoiceSchema` to Llama adapter parameters."""
 
     voice = schema.voice or schema.timbre or DEFAULT_VOICE
     if voice not in AVAILABLE_VOICES:
@@ -45,11 +45,11 @@ def _orpheus_voice_mapper(schema: VoiceSchema) -> Dict[str, Any]:
     return {"voice": voice}
 
 
-def _orpheus_describe() -> Dict[str, Any]:
-    """Return capability descriptor for the Orpheus adapter."""
+def _llama_describe() -> Dict[str, Any]:
+    """Return capability descriptor for the Llama adapter."""
 
     return {
-        "name": "orpheus_cpp",
+        "name": "llama_cpp",
         "streaming": True,
         "unit": "ms",
         "granularity": [8, 12, 16, 24, 32, 48, 64],
@@ -98,10 +98,10 @@ class AdapterRegistry:
         return spec.constructor(prompt=prompt, **params)
 
 
-# Global registry instance pre-populated with the default orpheus_cpp adapter
+# Global registry instance pre-populated with the default llama_cpp adapter
 registry = AdapterRegistry()
 registry.register(
-    "orpheus_cpp", OrpheusAdapter, _orpheus_describe, _orpheus_voice_mapper
+    "llama_cpp", LlamaAdapter, _llama_describe, _llama_voice_mapper
 )
 
 __all__ = ["VoiceSchema", "AdapterRegistry", "registry"]
