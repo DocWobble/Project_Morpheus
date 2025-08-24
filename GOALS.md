@@ -346,3 +346,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** pin-core-dependencies
 - **Notes:** pins numpy <2 to match torch wheels.
 
+### Capability: ci-requirements-validation
+
+- **Purpose:** Fail early when dependency resolution breaks.
+- **Scope:** `scripts/validate_requirements.py`, `.github/workflows/scenario-probes.yml`.
+- **Shape:** `scripts/validate_requirements.py` installs `requirements.txt` in a fresh virtual environment; workflow fails on errors.
+- **Compatibility:** additive; no impact on runtime environments.
+- **Status:** active
+- **Owner:** repository owner
+- **Linked Scenes:** `.github/workflows/scenario-probes.yml`
+- **Linked Decisions:** [2025-12-10] requirements-ci-validation
+- **Notes:** none
+
