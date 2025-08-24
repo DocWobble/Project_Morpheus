@@ -599,3 +599,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** n/a
 
+### [2025-08-24] pin-core-dependencies
+
+- **Context:** requirements listed numpy 2.x and omitted snac, causing install failures and missing inference engine.
+- **Decision:** Rebuild requirements.txt with explicit version ranges, add snac, and pin numpy <2 for torch 2.2 compatibility.
+- **Alternatives:** Keep loose pins or rely on downstream environments.
+- **Trade-offs:** Narrow pins require updates as upstream versions evolve.
+- **Scope:** requirements.txt, GOALS.md, DECISIONS.log.
+- **Impact:** `pip install -r requirements.txt` succeeds under Ubuntu 22/Python 3.10 and exposes snac-based inference.
+- **TTL / Review:** Revisit when torch or snac publish new major releases.
+- **Status:** active
+- **Links:** goal dependency-lock
+
