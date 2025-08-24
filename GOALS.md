@@ -322,3 +322,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-12-09] canonical-installer
 - **Notes:** none
 
+### Capability: dependency-lock
+
+- **Purpose:** Ensure Morpheus client installs reproducible dependencies on Ubuntu 22 / Python 3.10.
+- **Scope:** requirements.txt, scripts/one_click.py
+- **Shape:** `pip install -r requirements.txt` succeeds and packages import without version conflicts.
+- **Compatibility:** Standard pip environments; updates via version bump.
+- **Status:** active
+- **Owner:** repository owner
+- **Linked Scenes:** tests/test_start_requires_dotenv.py, tests/test_start_requires_orpheus_cpp.py
+- **Linked Decisions:** pin-core-dependencies
+- **Notes:** pins numpy <2 to match torch wheels.
+
