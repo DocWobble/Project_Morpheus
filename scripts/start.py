@@ -11,10 +11,10 @@ import webbrowser
 
 try:  # pragma: no cover - optional dependency
     from dotenv import load_dotenv
-except ImportError as exc:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     raise SystemExit(
-        "python-dotenv is required to load configuration. Install it with `pip install python-dotenv`."
-    ) from exc
+        "Install `python-dotenv` via `pip install python-dotenv` to load configuration."
+    )
 
 from Morpheus_Client.config import ensure_env_file_exists
 from Morpheus_Client import start_server
@@ -30,10 +30,10 @@ def main() -> None:
     """
     try:
         import orpheus_cpp  # noqa: F401
-    except ImportError as exc:  # pragma: no cover - depends on optional dep
+    except ImportError:  # pragma: no cover - depends on optional dep
         raise SystemExit(
-            "orpheus_cpp is required for local synthesis. Install it with `pip install orpheus-cpp`."
-        ) from exc
+            "Install `orpheus_cpp` via `pip install orpheus-cpp` for local synthesis."
+        )
     ensure_env_file_exists()
     # Load config files: OS env > ~/.morpheus/config > .env
     user_config = os.path.expanduser("~/.morpheus/config")

@@ -207,6 +207,18 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-09-30] orpheus-cpp-required
 - **Notes:** build step may take several minutes
 
+### Capability: dotenv-startup-check
+
+- **Purpose:** Exit early with guidance when `python-dotenv` is missing.
+- **Scope:** `scripts/start.py`.
+- **Shape:** Importing the start script without `python-dotenv` raises a descriptive `SystemExit` message.
+- **Compatibility:** additive; start script aborts before configuration.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_start_requires_dotenv.py`
+- **Linked Decisions:** [2025-08-24] start-dep-checks
+- **Notes:** none
+
 ### Capability: transcript-history
 
 - **Purpose:** Retain utterance text for replay and monitoring.
@@ -333,4 +345,16 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** tests/test_start_requires_dotenv.py, tests/test_start_requires_orpheus_cpp.py
 - **Linked Decisions:** pin-core-dependencies
 - **Notes:** pins numpy <2 to match torch wheels.
+
+### Capability: ci-requirements-validation
+
+- **Purpose:** Fail early when dependency resolution breaks.
+- **Scope:** `scripts/validate_requirements.py`, `.github/workflows/scenario-probes.yml`.
+- **Shape:** `scripts/validate_requirements.py` installs `requirements.txt` in a fresh virtual environment; workflow fails on errors.
+- **Compatibility:** additive; no impact on runtime environments.
+- **Status:** active
+- **Owner:** repository owner
+- **Linked Scenes:** `.github/workflows/scenario-probes.yml`
+- **Linked Decisions:** [2025-12-10] requirements-ci-validation
+- **Notes:** none
 

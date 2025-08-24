@@ -32,6 +32,18 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Links:** n/a
 
 
+### [2025-12-10] start-dep-errors
+
+- **Context:** Importing `python-dotenv` or `orpheus_cpp` in `scripts/start.py` produced full tracebacks when missing.
+- **Decision:** Catch `ImportError` for these dependencies and exit with installation guidance, suppressing traceback chaining.
+- **Alternatives:** Allow raw `ImportError` to surface.
+- **Trade-offs:** Hides debugging detail at startup in favor of clarity for missing dependencies.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Impact:** Users see concise `pip install` instructions instead of stack traces.
+- **TTL / Review:** Revisit if dependency management or messaging changes.
+- **Status:** ACTIVE
+- **Links:** goal dotenv-startup-check, goal orpheus-cpp-startup-check
+
 ### [2025-12-09] canonical-installer
 
 - **Context:** Having both `scripts/install.py` and `scripts/one_click.py` caused confusion about the supported setup path.
@@ -610,4 +622,28 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit when torch or snac publish new major releases.
 - **Status:** active
 - **Links:** goal dependency-lock
+
+### [2025-12-10] requirements-ci-validation
+
+- **Context:** Dependency conflicts may merge unnoticed until runtime, slowing feedback cycles.
+- **Decision:** Add `scripts/validate_requirements.py` and invoke it in CI to install `requirements.txt` in an isolated environment.
+- **Alternatives:** Rely on main workflow installs or manual checks.
+- **Trade-offs:** Slight increase in CI time and repository maintenance.
+- **Scope:** `scripts/validate_requirements.py`, `.github/workflows/scenario-probes.yml`, `GOALS.md`.
+- **Impact:** Pull requests fail early when `pip install -r requirements.txt` cannot resolve dependencies.
+- **TTL / Review:** Revisit if dependency management moves to a lockfile or different tool.
+- **Status:** active
+- **Links:** goal ci-requirements-validation
+
+### [2025-08-24] run-tests-archive-path
+
+- **Context:** `scripts/run_tests.sh` installed Orpheus-TTS dependencies from a non-archived path.
+- **Decision:** Read Orpheus-TTS dependencies from an archived `pyproject.toml` and allow an `ARCHIVE_ROOT` override.
+- **Alternatives:** Hardcode the new path or rely on live repository layout.
+- **Trade-offs:** Adds an environment variable but keeps the test runner resilient to archive moves.
+- **Scope:** `scripts/run_tests.sh`.
+- **Impact:** Test runs install Orpheus-TTS from the archive by default.
+- **TTL / Review:** Revisit if archive structure or dependency management changes.
+- **Status:** active
+- **Links:**
 
