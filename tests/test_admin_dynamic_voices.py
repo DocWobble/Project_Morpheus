@@ -13,7 +13,9 @@ import re
 
 
 def test_admin_voices_loaded_via_api():
-    html_path = Path(__file__).resolve().parents[1] / "Morpheus_Client" / "admin" / "tts.html"
+    html_path = (
+        Path(__file__).resolve().parents[1] / "Morpheus_Client" / "admin" / "index.html"
+    )
     html = html_path.read_text()
 
     # Voices are populated at runtime; representative names should not appear

@@ -234,7 +234,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 ### Capability: admin-voices-runtime
 
 - **Purpose:** Admin UI loads available voices and languages at runtime from the API.
-- **Scope:** `Morpheus_Client/admin/tts.html`, `Morpheus_Client/server.py`
+- **Scope:** `Morpheus_Client/admin/index.html`, `Morpheus_Client/server.py`
 - **Shape:** `/v1/audio/voices` returns voice-language mapping; admin page fetches and renders dynamically.
 - **Compatibility:** additive to existing voice list API; static `/admin` assets remain unchanged by backend config.
 - **Status:** active
