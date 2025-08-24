@@ -415,3 +415,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit if the dashboard gains dynamic features.
 - **Status:** active
 - **Links:** goal centralized-docs
+
+### [2025-08-24] quick-start-docs
+
+- **Context:** The README lacked guidance on creating a virtual environment and mentioned no one-command bootstrap option.
+- **Decision:** Add a Quick Start section documenting virtual environment setup and reference the `scripts/one_click.py` bootstrap script.
+- **Alternatives:** Leave installation instructions as-is without highlighting environment isolation.
+- **Trade-offs:** Additional documentation requires upkeep as setup scripts evolve.
+- **Scope:** `README.md`, `DECISIONS.log`.
+- **Impact:** New contributors can isolate dependencies quickly and discover the one-click setup path.
+- **TTL / Review:** Revisit if the bootstrap process changes or a `bootstrap.sh` replaces `one_click.py`.
+- **Status:** active
+- **Links:** goal centralized-docs

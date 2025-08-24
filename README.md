@@ -15,6 +15,25 @@ The adapter registry defaults to a local speech synthesis adapter; remote backen
 optional and reside in a separate module. Responses are streamed as WAV audio
 rather than text tokens.
 
+## Quick Start
+
+Create and activate a virtual environment before installing dependencies:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows use `.venv\\Scripts\\activate`
+pip install -r requirements.txt
+python scripts/start.py
+```
+
+Prefer a one-command setup? Run the bootstrap script:
+
+```bash
+python scripts/one_click.py
+```
+
+This downloads Miniforge if needed and installs all requirements.
+
 ## Installation
 
 ### Prerequisites
