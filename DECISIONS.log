@@ -451,3 +451,14 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit when setup flows change or text streaming replaces audio.
 - **Status:** active
 - **Links:** goal centralized-docs
+### [2025-08-24] start-path-prepend
+
+- **Context:** Running `scripts/start.py` directly failed because the repository root wasn't on `sys.path`.
+- **Decision:** Prepend the repository root to `sys.path` within `scripts/start.py`.
+- **Alternatives:** Require launching via `python -m` or packaging the project.
+- **Trade-offs:** Adds a small path tweak but avoids packaging overhead.
+- **Scope:** `scripts/start.py`.
+- **Impact:** The start script can import `Morpheus_Client` without installation.
+- **TTL / Review:** Revisit if the project becomes an installable package.
+- **Status:** active
+- **Links:** n/a
