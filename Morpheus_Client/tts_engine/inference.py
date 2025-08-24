@@ -3,7 +3,13 @@ import sys
 import time
 import wave
 import numpy as np
-import sounddevice as sd
+
+try:  # Optional runtime dependency; stubbed if unavailable
+    import sounddevice as sd
+except Exception:  # pragma: no cover - fallback when PortAudio is missing
+    import types
+
+    sd = types.SimpleNamespace(play=lambda *_, **__: None, wait=lambda: None)
 from dotenv import load_dotenv
 
 # Helper to detect if running in Uvicorn's reloader
@@ -152,13 +158,9 @@ VOICE_TO_LANGUAGE.update({voice: "italian" for voice in ITALIAN_VOICES})
 # Languages list for the UI
 AVAILABLE_LANGUAGES = ["english", "french", "german", "korean", "hindi", "mandarin", "spanish", "italian"]
 
-# Import the unified token handling from speechpipe
-from .speechpipe import (
-    turn_token_into_id,
-    CUSTOM_TOKEN_PREFIX,
-    tokens_decoder,
-    tokens_decoder_sync,
-)
+# Token decoding helpers reside in `speechpipe` but are only required by
+# optional remote backends. Importing them here would pull heavy dependencies
+# at startup, so callers import from `speechpipe` directly when needed.
 
 # Special token IDs for Orpheus model
 START_TOKEN_ID = 128259

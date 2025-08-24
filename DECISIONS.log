@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-11-06] trim-requirements
+
+- **Context:** `requirements.txt` carried numerous training and UI dependencies unused by the Morpheus client/server.
+- **Decision:** Remove obsolete packages and stub `sounddevice` so the server imports cleanly without native libraries.
+- **Alternatives:** Leave the full list intact or require system-wide PortAudio.
+- **Trade-offs:** Ancillary scripts may require manual installs when executed.
+- **Scope:** `requirements.txt`, `Morpheus_Client/tts_engine/inference.py`, `Morpheus_Client/tts_engine/__init__.py`, `CHANGES.md`.
+- **Impact:** Smaller install surface and predictable startup.
+- **TTL / Review:** Revisit when new capabilities demand additional dependencies.
+- **Status:** ACTIVE
+- **Links:** N/A
+
 ### [2025-08-24] consolidate-readmes
 
 - **Context:** Duplicate README and requirements files scattered documentation and setup guidance.

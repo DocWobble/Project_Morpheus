@@ -7,7 +7,6 @@ This package contains the core components for audio generation:
 """
 
 # Make key components available at package level
-from .remote_backend import generate_speech_from_api
 from .inference import (
     AVAILABLE_VOICES,
     DEFAULT_VOICE,
