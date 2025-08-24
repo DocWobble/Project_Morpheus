@@ -510,3 +510,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit if the speech endpoint schema changes.
 - **Status:** active
 - **Links:** n/a
+
+### [2025-09-20] one-click-gpu-detection
+
+- **Context:** GPU-equipped systems required manual selection of Torch and `llama-cpp-python` builds, complicating setup.
+- **Decision:** Extend `scripts/one_click.py` to detect CUDA or ROCm and install matching Torch, `llama-cpp-python`, `bitsandbytes`, and `flash-attn` wheels.
+- **Alternatives:** Leave hardware-specific commands in documentation for manual execution.
+- **Trade-offs:** Script embeds URLs that may change upstream and adds more installation logic.
+- **Scope:** `scripts/one_click.py`, `requirements.txt`.
+- **Impact:** Users with NVIDIA or AMD GPUs get optimized dependencies automatically; CPU-only flows remain unchanged.
+- **TTL / Review:** Revisit when PyTorch or `llama-cpp-python` release new wheel indexes.
+- **Status:** active
+- **Links:** goal gpu-aware-one-click

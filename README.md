@@ -41,6 +41,8 @@ python scripts/start.py
 ```
 
 `one_click.py` downloads Miniforge if needed, creates a virtual environment and installs all requirements.
+If `nvidia-smi` or `rocm-smi` is available, it also installs GPU-optimized Torch, `bitsandbytes`, `flash-attn`, and a matching
+`llama-cpp-python` wheel.
 
 The admin dashboard is served at http://localhost:5005/admin.
 
