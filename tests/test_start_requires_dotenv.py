@@ -3,18 +3,18 @@ import importlib
 import pytest
 
 
-def test_start_errors_when_orpheus_cpp_missing(monkeypatch):
+def test_start_errors_when_dotenv_missing(monkeypatch):
     real_import = builtins.__import__
 
     def fake_import(name, *args, **kwargs):
-        if name == "orpheus_cpp":
+        if name == "dotenv":
             raise ImportError("missing")
         return real_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
+    # Ensure module is reloaded even if previously imported
     import sys
     sys.modules.pop("scripts.start", None)
-    start = importlib.import_module("scripts.start")
     with pytest.raises(SystemExit) as exc:
-        start.main()
-    assert "orpheus_cpp is required" in str(exc.value)
+        importlib.import_module("scripts.start")
+    assert "python-dotenv is required" in str(exc.value)
