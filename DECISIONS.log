@@ -368,3 +368,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal centralized-docs
 
+### [2025-08-24] default-audio-streaming
+
+- **Context:** `README.md` documented text streaming while the service and client stream WAV audio.
+- **Decision:** Use WAV audio streaming as the default and update documentation to match.
+- **Alternatives:** Rework the codebase to stream UTF-8 text instead of audio.
+- **Trade-offs:** Clients must handle binary data; switching to text would diverge from TTS functionality.
+- **Scope:** `README.md`.
+- **Impact:** Documentation reflects actual endpoints so integrators expect WAV output.
+- **TTL / Review:** Revisit if text streaming becomes a requirement.
+- **Status:** active
+- **Links:** goal centralized-docs
+
