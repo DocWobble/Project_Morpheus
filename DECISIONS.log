@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-08-24] llama-cpp-baseline
+
+- **Context:** Startup previously required `orpheus_cpp`; baseline inference now depends on `llama_cpp`.
+- **Decision:** Replace the `orpheus_cpp` import check with `llama_cpp` and update tests and docs.
+- **Alternatives:** Keep `orpheus_cpp` as the default engine; defer to remote services.
+- **Trade-offs:** Introduces a different native dependency that may have distinct build requirements.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_llama_cpp.py`, `GOALS.md`, `DECISIONS.log`.
+- **Impact:** Startup fails fast with guidance to install `llama_cpp`, aligning expectations with the new engine.
+- **TTL / Review:** Revisit if the default inference engine changes again.
+- **Status:** ACTIVE
+- **Links:** goal llama-cpp-startup-check, tests/test_start_requires_llama_cpp.py
+
 ### [2025-08-24] dep-constraint-cleanup
 
 - **Context:** Some dependencies pinned to unreleased versions blocked installation as versions diverged.
@@ -34,15 +46,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 
 ### [2025-12-10] start-dep-errors
 
-- **Context:** Importing `python-dotenv` or `orpheus_cpp` in `scripts/start.py` produced full tracebacks when missing.
+- **Context:** Importing `python-dotenv` or `llama_cpp` in `scripts/start.py` produced full tracebacks when missing.
 - **Decision:** Catch `ImportError` for these dependencies and exit with installation guidance, suppressing traceback chaining.
 - **Alternatives:** Allow raw `ImportError` to surface.
 - **Trade-offs:** Hides debugging detail at startup in favor of clarity for missing dependencies.
-- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_llama_cpp.py`.
 - **Impact:** Users see concise `pip install` instructions instead of stack traces.
 - **TTL / Review:** Revisit if dependency management or messaging changes.
 - **Status:** ACTIVE
-- **Links:** goal dotenv-startup-check, goal orpheus-cpp-startup-check
+- **Links:** goal dotenv-startup-check, goal llama-cpp-startup-check
 
 ### [2025-12-09] canonical-installer
 
@@ -139,7 +151,8 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Scope:** `README.md`, `DECISIONS.log`.
 - **Impact:** Clearer install flow and avoids redundant package commands.
 - **TTL / Review:** Revisit if prebuilt wheels land or another default adapter is chosen.
-- **Status:** ACTIVE
+- **Status:** REPLACED
+- **Superseded-By:** [2025-08-24] llama-cpp-baseline
 - **Links:** goal orpheus-cpp-startup-check
 
 ### [2025-11-06] trim-requirements
@@ -196,7 +209,8 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Scope:** `requirements.txt`, `scripts/start.py`, `README.md`.
 - **Impact:** Predictable startup behaviour and clearer dependency expectations.
 - **TTL / Review:** Revisit if a pure-Python or remote backend becomes default.
-- **Status:** ACTIVE
+- **Status:** REPLACED
+- **Superseded-By:** [2025-08-24] llama-cpp-baseline
 - **Links:** goal orpheus-cpp-startup-check, tests/test_start_requires_orpheus_cpp.py
 ### [2025-09-21] fastapi-migration
 
@@ -602,10 +616,10 @@ _(New entries go on top. Keep each under ~20 lines.)_
 ### [2025-08-24] start-dep-checks
 
 - **Context:** The start script raised raw tracebacks when optional dependencies like `python-dotenv` were missing.
-- **Decision:** Wrap imports of `python-dotenv` and `orpheus_cpp` with try/except blocks that exit with guidance to install missing packages.
+- **Decision:** Wrap imports of `python-dotenv` and `llama_cpp` with try/except blocks that exit with guidance to install missing packages.
 - **Alternatives:** Allow ImportErrors to propagate.
 - **Trade-offs:** Slightly more startup code; messages may become outdated.
-- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_llama_cpp.py`.
 - **Impact:** Users receive clear installation guidance instead of stack traces when dependencies are absent.
 - **TTL / Review:** Review when dependency handling changes.
 - **Status:** active

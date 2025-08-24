@@ -195,16 +195,16 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-09-19] start-entrypoint
 - **Notes:** none
 
-### Capability: orpheus-cpp-startup-check
+### Capability: llama-cpp-startup-check
 
 - **Purpose:** Fail fast when the local C++ bindings are missing.
 - **Scope:** `scripts/start.py`, `requirements.txt`, `README.md`.
-- **Shape:** Startup aborts with a descriptive error if `orpheus_cpp` cannot be imported.
+- **Shape:** Startup aborts with a descriptive error if `llama_cpp` cannot be imported.
 - **Compatibility:** additive; service does not launch without the binding.
 - **Status:** active
 - **Owner:** repo owner
-- **Linked Scenes:** `tests/test_start_requires_orpheus_cpp.py`
-- **Linked Decisions:** [2025-09-30] orpheus-cpp-required
+- **Linked Scenes:** `tests/test_start_requires_llama_cpp.py`
+- **Linked Decisions:** [2025-08-24] llama-cpp-baseline
 - **Notes:** build step may take several minutes
 
 ### Capability: dotenv-startup-check
@@ -342,7 +342,7 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Compatibility:** Standard pip environments; updates via version bump.
 - **Status:** active
 - **Owner:** repository owner
-- **Linked Scenes:** tests/test_start_requires_dotenv.py, tests/test_start_requires_orpheus_cpp.py
+- **Linked Scenes:** tests/test_start_requires_dotenv.py, tests/test_start_requires_llama_cpp.py
 - **Linked Decisions:** pin-core-dependencies
 - **Notes:** pins numpy <2 to match torch wheels.
 
