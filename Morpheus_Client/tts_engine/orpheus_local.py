@@ -67,10 +67,10 @@ async def _stream_from_model(
 
     gen = model.stream_tts_sync(prompt, options={"voice_id": voice})
     while True:
-        try:
-            _sr, chunk = await asyncio.to_thread(next, gen)
-        except StopIteration:
+        result = await asyncio.to_thread(lambda: next(gen, None))
+        if result is None:
             break
+        _sr, chunk = result
         yield chunk.tobytes()
 
 
