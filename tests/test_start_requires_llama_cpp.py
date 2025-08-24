@@ -3,11 +3,11 @@ import importlib
 import pytest
 
 
-def test_start_errors_when_orpheus_cpp_missing(monkeypatch):
+def test_start_errors_when_llama_cpp_missing(monkeypatch):
     real_import = builtins.__import__
 
     def fake_import(name, *args, **kwargs):
-        if name == "orpheus_cpp":
+        if name == "llama_cpp":
             raise ImportError("missing")
         return real_import(name, *args, **kwargs)
 
@@ -18,5 +18,5 @@ def test_start_errors_when_orpheus_cpp_missing(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         start.main()
     msg = str(exc.value)
-    assert "pip install orpheus-cpp" in msg
+    assert "pip install llama-cpp-python" in msg
     assert exc.value.__cause__ is None

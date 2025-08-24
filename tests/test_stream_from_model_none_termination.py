@@ -9,7 +9,7 @@ sys.modules.setdefault("sounddevice", types.SimpleNamespace())
 
 import asyncio
 
-from Morpheus_Client.tts_engine.orpheus_local import _stream_from_model
+from Morpheus_Client.tts_engine.llama_local import _stream_from_model
 
 
 class DummyChunk:
@@ -37,7 +37,7 @@ class NoneTerminatingIterator:
 
 
 class DummyModel:
-    def stream_tts_sync(self, *_: object, **__: object):
+    def text_to_speech(self, *_: object, **__: object):
         return NoneTerminatingIterator()
 
 def test_stream_from_model_stops_on_none():

@@ -1,6 +1,6 @@
-"""Orpheus TTS adapter for local PCM streaming.
+"""Llama.cpp TTS adapter for local PCM streaming.
 
-Audio is generated using a locally loaded :class:`OrpheusCpp` model.  The
+Audio is generated using a locally loaded :class:`llama_cpp.Llama` model.  The
 model is cached at module scope so subsequent calls reuse the same
 instance.  The underlying generator may yield PCM segments of arbitrary
 size, so we maintain an internal buffer and slice the data to honour the
@@ -29,60 +29,66 @@ from .inference import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover - used only for type hints
-    from orpheus_cpp import OrpheusCpp
+    from llama_cpp import Llama
 
 
 _model_lock = asyncio.Lock()
 
 
 @lru_cache(maxsize=1)
-def _load_model_sync() -> "OrpheusCpp":
-    """Load and cache the underlying :class:`OrpheusCpp` model."""
+def _load_model_sync() -> "Llama":
+    """Load and cache the underlying :class:`llama_cpp.Llama` model."""
 
-    from orpheus_cpp import OrpheusCpp
+    from llama_cpp import Llama
 
-    n_ctx = int(os.environ.get("ORPHEUS_N_CTX", "8192"))
-    n_gpu_layers = int(os.environ.get("ORPHEUS_N_GPU_LAYERS", "0"))
+    model_path = os.environ.get("LLAMA_MODEL_PATH", "model.gguf")
+    n_ctx = int(os.environ.get("LLAMA_N_CTX", "8192"))
+    n_gpu_layers = int(os.environ.get("LLAMA_N_GPU_LAYERS", "0"))
 
-    return OrpheusCpp(
-        verbose=False,
-        lang="en",
+    return Llama(
+        model_path=model_path,
         n_ctx=n_ctx,
         n_gpu_layers=n_gpu_layers,
     )
 
 
-async def _load_model() -> "OrpheusCpp":
-    """Thread-safe coroutine returning the cached :class:`OrpheusCpp` instance."""
+async def _load_model() -> "Llama":
+    """Thread-safe coroutine returning the cached :class:`llama_cpp.Llama` instance."""
 
     async with _model_lock:
         return _load_model_sync()
 
 
 async def _stream_from_model(
-    model: "OrpheusCpp",
+    model: "Llama",
     prompt: str,
     voice: str,
     *_: object,
 ) -> AsyncGenerator[bytes, None]:
     """Asynchronously stream PCM chunks from ``model``.
 
-    The underlying ``OrpheusCpp.stream_tts_sync`` method is synchronous.  We
+    The underlying ``Llama.text_to_speech`` method is synchronous.  We
     execute each ``next`` call in a thread via :func:`asyncio.to_thread` to avoid
-    blocking the event loop.
+    blocking the event loop.  The iterator is expected to yield either raw
+    PCM ``bytes`` or ``(sample_rate, chunk)`` tuples where ``chunk`` exposes
+    a ``tobytes`` method.
     """
 
-    gen = model.stream_tts_sync(prompt, options={"voice_id": voice})
+    gen = model.text_to_speech(prompt, voice=voice)
     while True:
         result = await asyncio.to_thread(lambda: next(gen, None))
         if result is None:
             break
-        _sr, chunk = result
-        yield chunk.tobytes()
+        if isinstance(result, tuple) and len(result) == 2:
+            _sr, chunk = result
+            data = chunk.tobytes() if hasattr(chunk, "tobytes") else chunk
+        else:
+            data = result
+        yield bytes(data)
 
 
 class TTSAdapter(TTSAdapterProtocol):
-    """Concrete adapter that streams PCM audio from a local Orpheus model."""
+    """Concrete adapter that streams PCM audio from a local Llama.cpp model."""
 
     def __init__(
         self,
