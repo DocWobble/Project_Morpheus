@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-11-24] admin-index-default
+
+- **Context:** The admin dashboard HTML lived at `tts.html`, so navigating to `/admin/` yielded a 404 unless the file name was specified.
+- **Decision:** Rename `tts.html` to `index.html` so the admin UI serves by default at `/admin/`.
+- **Alternatives:** Keep the file name and add a redirect; mount the static folder at `/`.
+- **Trade-offs:** Direct links to `tts.html` break but the route becomes intuitive.
+- **Scope:** `Morpheus_Client/admin/index.html`, tests, `/admin` surface.
+- **Impact:** Operators can visit `/admin/` without knowing the HTML file name.
+- **TTL / Review:** Revisit if the admin UI gains routing.
+- **Status:** ACTIVE
+- **Links:** interface admin-endpoint, goal admin-voices-runtime
+
 ### [2025-08-24] miniforge-idempotent
 
 - **Context:** `scripts/one_click.py` attempted a fresh Miniforge install even when the target directory already existed.

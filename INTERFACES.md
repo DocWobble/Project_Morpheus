@@ -110,6 +110,7 @@
 - **Code:** `Morpheus_Client/server.py`
 - **Change Log:**
   - 2025-09-01: documented endpoint
+  - 2025-11-24: default `index.html` served at `/admin/`
 
 ### Surface: speech-endpoint
 - **Type:** API
