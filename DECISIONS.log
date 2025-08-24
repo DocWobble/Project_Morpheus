@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-08-24] orpheus-local-none-stop
+
+- **Context:** `_stream_from_model` assumed the underlying iterator raised `StopIteration`; some `orpheus_cpp` iterators instead returned `None`, causing `TypeError` during unpacking.
+- **Decision:** Invoke `next` with a `None` sentinel inside a thread and break when `None` is returned, avoiding unpacking errors.
+- **Alternatives:** Keep try/except expecting `StopIteration`.
+- **Trade-offs:** Adapts to nonconformant iterators at the cost of deviating from the generator protocol.
+- **Scope:** `Morpheus_Client/tts_engine/orpheus_local.py`, tests.
+- **Impact:** Local TTS streaming terminates cleanly when the model signals completion by returning `None`.
+- **TTL / Review:** Revisit if upstream iterator behavior changes.
+- **Status:** ACTIVE
+- **Links:** test_stream_from_model_none_termination
+
 ### [2025-11-24] admin-index-default
 
 - **Context:** The admin dashboard HTML lived at `tts.html`, so navigating to `/admin/` yielded a 404 unless the file name was specified.
