@@ -635,3 +635,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal ci-requirements-validation
 
+### [2025-08-24] run-tests-archive-path
+
+- **Context:** `scripts/run_tests.sh` installed Orpheus-TTS dependencies from a non-archived path.
+- **Decision:** Read Orpheus-TTS dependencies from an archived `pyproject.toml` and allow an `ARCHIVE_ROOT` override.
+- **Alternatives:** Hardcode the new path or rely on live repository layout.
+- **Trade-offs:** Adds an environment variable but keeps the test runner resilient to archive moves.
+- **Scope:** `scripts/run_tests.sh`.
+- **Impact:** Test runs install Orpheus-TTS from the archive by default.
+- **TTL / Review:** Revisit if archive structure or dependency management changes.
+- **Status:** active
+- **Links:**
+
