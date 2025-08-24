@@ -41,21 +41,10 @@ source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 python scripts/start.py
 ```
 
-
-`one_click.py`:
-
-- Downloads Miniforge if needed
-- Creates a `.venv` virtual environment
-- Installs dependencies from `requirements.txt`
-
-You still need to:
-
-- Install GPU-specific PyTorch and accelerator wheels for your hardware
-- Activate the environment as shown above before starting the server
-
-`one_click.py` downloads Miniforge if needed, creates a virtual environment and installs all requirements.
-If `nvidia-smi` or `rocm-smi` is available, it also installs GPU-optimized Torch, `bitsandbytes`, `flash-attn`, and a matching
-`llama-cpp-python` wheel.
+The `one_click.py` script downloads Miniforge if needed, creates a `.venv` virtual environment, and installs dependencies from
+`requirements.txt`. When `nvidia-smi` or `rocm-smi` is available it also installs GPU-optimized Torch, `bitsandbytes`,
+`flash-attn`, and a matching `llama-cpp-python` wheel. Activate the environment as shown above before starting the server.
+This is the canonical installer; the older `scripts/install.py` has been removed.
 
 
 The admin dashboard is served at http://localhost:5005/admin.
