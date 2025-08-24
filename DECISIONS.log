@@ -623,3 +623,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal dependency-lock
 
+### [2025-12-10] requirements-ci-validation
+
+- **Context:** Dependency conflicts may merge unnoticed until runtime, slowing feedback cycles.
+- **Decision:** Add `scripts/validate_requirements.py` and invoke it in CI to install `requirements.txt` in an isolated environment.
+- **Alternatives:** Rely on main workflow installs or manual checks.
+- **Trade-offs:** Slight increase in CI time and repository maintenance.
+- **Scope:** `scripts/validate_requirements.py`, `.github/workflows/scenario-probes.yml`, `GOALS.md`.
+- **Impact:** Pull requests fail early when `pip install -r requirements.txt` cannot resolve dependencies.
+- **TTL / Review:** Revisit if dependency management moves to a lockfile or different tool.
+- **Status:** active
+- **Links:** goal ci-requirements-validation
+
