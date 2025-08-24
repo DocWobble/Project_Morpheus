@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-08-24] dep-constraint-cleanup
+
+- **Context:** Some dependencies pinned to unreleased versions blocked installation as versions diverged.
+- **Decision:** Drop upper bounds for numpy, psutil, python-dotenv, pydantic, starlette, uvicorn, and websockets while keeping tested minimums.
+- **Alternatives:** Adjust pins to specific released versions; maintain strict upper bounds.
+- **Trade-offs:** Future releases could introduce breaking changes, requiring periodic review.
+- **Scope:** requirements.txt.
+- **Impact:** Ensures dependency installs succeed with current releases and reduces maintenance overhead.
+- **TTL / Review:** Review quarterly for compatibility.
+- **Status:** ACTIVE
+- **Links:** n/a
+
 
 ### [2025-12-09] canonical-installer
 
