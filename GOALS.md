@@ -310,3 +310,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-08-24] one-click-venv
 - **Notes:** remind users to activate the virtual environment before starting the server
 
+### Capability: canonical-one-click-installer
+
+- **Purpose:** Maintain a single supported installer to streamline environment setup.
+- **Scope:** `scripts/one_click.py`, `README.md`.
+- **Shape:** `scripts/one_click.py` is the only installer; no redundant setup scripts exist.
+- **Compatibility:** n/a
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_one_click.py`
+- **Linked Decisions:** [2025-12-09] canonical-installer
+- **Notes:** none
+
