@@ -279,3 +279,34 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** tests/test_one_click.py::test_miniforge_detection_and_skip
 - **Linked Decisions:** [2025-08-24] miniforge-idempotent
 - **Notes:** re-evaluate if update-through-installer is required
+
+
+### Capability: gpu-aware-one-click
+
+- **Purpose:** Automatically install GPU-optimized dependencies when hardware is present.
+- **Scope:** `scripts/one_click.py`, `requirements.txt`.
+- **Shape:** Setup detects `nvidia-smi` or `rocm-smi` and installs matching Torch, `llama-cpp-python`, and GPU extras; falls back to CPU wheels otherwise.
+- **Compatibility:** CPU-only systems continue using standard packages.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:**
+  - `tests/test_one_click.py::test_detect_gpu_cuda`
+  - `tests/test_one_click.py::test_install_torch_cuda`
+- **Linked Decisions:** [2025-09-20] one-click-gpu-detection
+- **Notes:** `bitsandbytes` and `flash-attn` installs are best effort.
+
+
+### Capability: auto-venv-setup
+
+- **Purpose:** Ensure one-click script initializes and uses a dedicated virtual environment.
+- **Scope:** `scripts/one_click.py`, `tests/test_one_click.py`.
+- **Shape:** `.venv` is created if missing and dependency installation uses its Python executable.
+- **Compatibility:** additive; existing `.venv` remains untouched.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:**
+  - `tests/test_one_click.py::test_ensure_venv_creates_and_returns_python`
+  - `tests/test_one_click.py::test_install_requirements_uses_given_python`
+- **Linked Decisions:** [2025-08-24] one-click-venv
+- **Notes:** remind users to activate the virtual environment before starting the server
+
