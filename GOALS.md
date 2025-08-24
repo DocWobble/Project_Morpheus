@@ -358,3 +358,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-12-10] requirements-ci-validation
 - **Notes:** none
 
+### Capability: configurable-orpheus-context
+
+- **Purpose:** Allow local TTS to set context length and GPU layer count to avoid llama context creation failures.
+- **Scope:** `Morpheus_Client/tts_engine/orpheus_local.py`
+- **Shape:** `_load_model_sync` reads `ORPHEUS_N_CTX` and `ORPHEUS_N_GPU_LAYERS`; defaults `n_ctx` to 8192.
+- **Compatibility:** defaults maintain previous behaviour when vars unset.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_orpheus_model_config.py`
+- **Linked Decisions:** [2025-12-17] orpheus-default-n-ctx
+- **Notes:** ensures TTS runs on CPU when GPU config missing
+
