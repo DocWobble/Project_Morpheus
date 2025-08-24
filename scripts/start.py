@@ -8,7 +8,14 @@ if str(ROOT) not in sys.path:
 import os
 import threading
 import webbrowser
-from dotenv import load_dotenv
+
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+except ImportError as exc:  # pragma: no cover - optional dependency
+    raise SystemExit(
+        "python-dotenv is required to load configuration. Install it with `pip install python-dotenv`."
+    ) from exc
+
 from Morpheus_Client.config import ensure_env_file_exists
 from Morpheus_Client import start_server
 
