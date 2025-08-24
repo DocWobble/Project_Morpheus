@@ -50,12 +50,8 @@ pip install orpheus-cpp
 
 This dependency is pinned in `requirements.txt`; the build step may take several minutes.
 
-### UI build
-To build the optional web UI, install Node.js and npm then run within the UI directory (for example `Morpheus_Client/admin`):
-```bash
-npm install
-npm run build
-```
+### Admin UI
+The dashboard under `Morpheus_Client/admin` is served directly as static HTML. No Node.js tools or build step are required.
 
 ### Run
 Start the server and open the admin UI:

@@ -392,3 +392,14 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal centralized-docs
 
+### [2025-08-24] static-admin-ui
+
+- **Context:** `README.md` implied the admin dashboard required a Node.js build.
+- **Decision:** Document the dashboard as purely static HTML with no Node tooling.
+- **Alternatives:** Introduce a `package.json` and build pipeline for the admin UI.
+- **Trade-offs:** Forgoing tooling keeps the UI simple but limits future enhancements.
+- **Scope:** `README.md`.
+- **Impact:** Reduces setup steps and external dependencies.
+- **TTL / Review:** Revisit if the dashboard gains dynamic features.
+- **Status:** active
+- **Links:** goal centralized-docs
