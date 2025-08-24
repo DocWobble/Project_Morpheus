@@ -110,12 +110,12 @@
               
               <!-- Text input -->
               <div class="mb-6">
-                <label for="text" class="block text-sm font-medium text-white mb-1">Text to speak</label>
+                <label for="input" class="block text-sm font-medium text-white mb-1">Text to speak</label>
                 <div class="relative">
-                  <textarea 
-                    name="text" 
-                    id="text" 
-                    rows="4" 
+                  <textarea
+                    name="input"
+                    id="input"
+                    rows="4"
                     maxlength="8192"
                     class="block w-full rounded-md border-dark-600 bg-dark-700 text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 focus:ring-offset-dark-800 sm:text-sm px-3 py-2"
                     placeholder="Enter text to convert to speech..."
@@ -357,7 +357,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     let wavesurfer;
-    const textArea = document.getElementById('text');
+    const textArea = document.getElementById('input');
     const charCount = document.getElementById('char-count');
 
     textArea.addEventListener('input', () => {
@@ -522,7 +522,7 @@
         const response = await fetch('/v1/audio/speech', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, voice: voiceInput.value })
+          body: JSON.stringify({ input: text, voice: voiceInput.value })
         });
         if (!response.ok) throw new Error('Failed to generate speech');
         const data = await response.json();
