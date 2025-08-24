@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """One-click environment setup."""
 from __future__ import annotations
-import os
 import platform
 import shutil
 import subprocess
@@ -61,16 +60,87 @@ def install_miniforge(os_name: str, arch: str) -> None:
 def pick_requirements() -> Path:
     return Path(__file__).resolve().parent.parent / "requirements.txt"
 
+
+def detect_gpu() -> str | None:
+    """Return 'cuda', 'rocm', or None based on available tools."""
+    if shutil.which("nvidia-smi"):
+        return "cuda"
+    if shutil.which("rocm-smi"):
+        return "rocm"
+    return None
+
+
+def install_torch(gpu: str | None) -> None:
+    cmd = [sys.executable, "-m", "pip", "install", "torch"]
+    if gpu == "cuda":
+        cmd += ["--extra-index-url", "https://download.pytorch.org/whl/cu124"]
+    elif gpu == "rocm":
+        cmd += ["--extra-index-url", "https://download.pytorch.org/whl/rocm6.2"]
+    subprocess.check_call(cmd)
+    if gpu is not None:
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "bitsandbytes",
+                "flash-attn",
+            ]
+        )
+
+
+def install_llama_cpp(gpu: str | None) -> None:
+    cmd = [sys.executable, "-m", "pip", "install", "llama-cpp-python"]
+    if gpu == "cuda":
+        cmd += [
+            "--extra-index-url",
+            "https://abetlen.github.io/llama-cpp-python/whl/cu124",
+        ]
+    elif gpu == "rocm":
+        cmd += [
+            "--extra-index-url",
+            "https://abetlen.github.io/llama-cpp-python/whl/rocm6.2",
+        ]
+    subprocess.check_call(cmd)
+
+
 def install_requirements(req_file: Path) -> None:
     print(f"Installing dependencies from {req_file}")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", str(req_file)])
+    pkgs: list[str] = []
+    with req_file.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("torch"):
+                continue
+            pkgs.append(line)
+    if pkgs:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", *pkgs])
+    gpu = detect_gpu()
+    install_torch(gpu)
+    install_llama_cpp(gpu)
+
+def ensure_venv() -> Path:
+    venv_dir = Path(".venv")
+    if not venv_dir.exists():
+        subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
+    if platform.system().lower() == "windows":
+        return venv_dir / "Scripts" / "python.exe"
+    return venv_dir / "bin" / "python"
+
+def install_requirements(python: Path, req_file: Path) -> None:
+    print(f"Installing dependencies from {req_file}")
+    subprocess.check_call([str(python), "-m", "pip", "install", "-r", str(req_file)])
+
 
 def main() -> None:
     if not miniforge_installed():
         os_name, arch = detect_platform()
         install_miniforge(os_name, arch)
     req_file = pick_requirements()
-    install_requirements(req_file)
+    python = ensure_venv()
+    install_requirements(python, req_file)
+    print("Setup complete. Run 'source .venv/bin/activate' before launching the server.")
 
 if __name__ == "__main__":
     main()
