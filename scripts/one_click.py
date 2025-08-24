@@ -61,16 +61,26 @@ def install_miniforge(os_name: str, arch: str) -> None:
 def pick_requirements() -> Path:
     return Path(__file__).resolve().parent.parent / "requirements.txt"
 
-def install_requirements(req_file: Path) -> None:
+def ensure_venv() -> Path:
+    venv_dir = Path(".venv")
+    if not venv_dir.exists():
+        subprocess.check_call([sys.executable, "-m", "venv", str(venv_dir)])
+    if platform.system().lower() == "windows":
+        return venv_dir / "Scripts" / "python.exe"
+    return venv_dir / "bin" / "python"
+
+def install_requirements(python: Path, req_file: Path) -> None:
     print(f"Installing dependencies from {req_file}")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", str(req_file)])
+    subprocess.check_call([str(python), "-m", "pip", "install", "-r", str(req_file)])
 
 def main() -> None:
     if not miniforge_installed():
         os_name, arch = detect_platform()
         install_miniforge(os_name, arch)
     req_file = pick_requirements()
-    install_requirements(req_file)
+    python = ensure_venv()
+    install_requirements(python, req_file)
+    print("Setup complete. Run 'source .venv/bin/activate' before launching the server.")
 
 if __name__ == "__main__":
     main()
