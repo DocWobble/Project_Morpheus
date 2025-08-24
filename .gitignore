@@ -8,3 +8,5 @@ SCENES/_artifacts/
 **/.venv/
 # Ignore Python cache directories
 **/__pycache__/
+/archive/Oogabooga WebUI/extensions/text-to-tts-webui
+/archive/Oogabooga WebUI/extensions/Playground
