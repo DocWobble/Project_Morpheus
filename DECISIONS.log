@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-11-07] orpheus-cpp-docs
+
+- **Context:** Installation instructions duplicated manual `orpheus-cpp` steps despite the dependency being pinned in `requirements.txt`.
+- **Decision:** Keep `orpheus-cpp` in `requirements.txt` and document C++ build prerequisites prior to running `pip install -r requirements.txt`.
+- **Alternatives:** Drop the package from the requirements and require a standalone install.
+- **Trade-offs:** Users must prepare a C++ toolchain before installing dependencies.
+- **Scope:** `README.md`, `DECISIONS.log`.
+- **Impact:** Clearer install flow and avoids redundant package commands.
+- **TTL / Review:** Revisit if prebuilt wheels land or another default adapter is chosen.
+- **Status:** ACTIVE
+- **Links:** goal orpheus-cpp-startup-check
+
 ### [2025-11-06] trim-requirements
 
 - **Context:** `requirements.txt` carried numerous training and UI dependencies unused by the Morpheus client/server.
