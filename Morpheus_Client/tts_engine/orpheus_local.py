@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 from functools import lru_cache
 from typing import AsyncGenerator, Optional, TYPE_CHECKING
+import os
 
 from ..orchestrator.adapter import (
     AudioChunk,
@@ -40,9 +41,15 @@ def _load_model_sync() -> "OrpheusCpp":
 
     from orpheus_cpp import OrpheusCpp
 
-    # ``verbose`` is disabled to keep logs clean during tests; language is fixed
-    # to English which matches the default voice set.
-    return OrpheusCpp(verbose=False, lang="en")
+    n_ctx = int(os.environ.get("ORPHEUS_N_CTX", "8192"))
+    n_gpu_layers = int(os.environ.get("ORPHEUS_N_GPU_LAYERS", "0"))
+
+    return OrpheusCpp(
+        verbose=False,
+        lang="en",
+        n_ctx=n_ctx,
+        n_gpu_layers=n_gpu_layers,
+    )
 
 
 async def _load_model() -> "OrpheusCpp":

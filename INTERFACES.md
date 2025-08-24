@@ -93,6 +93,7 @@
   - 2025-10-24: allow `source_config` for constructor options
   - 2025-08-19: mirror config to `~/.morpheus/config` and load it before `.env`
   - 2025-10-30: validate and persist `ORPHEUS_TEMPERATURE`, `ORPHEUS_TOP_P`, `ORPHEUS_MAX_TOKENS`
+  - 2025-12-17: allow `ORPHEUS_N_CTX` and `ORPHEUS_N_GPU_LAYERS` for local TTS model
 
 ### Surface: admin-endpoint
 - **Type:** API
