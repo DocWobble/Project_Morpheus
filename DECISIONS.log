@@ -356,3 +356,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal tunable-inference-params
 
+### [2025-08-24] setup-scripts-no-file-mods
+
+- **Context:** Ensure deterministic editing of `requirements.txt` and `README.md` by avoiding concurrent modifications from setup scripts.
+- **Decision:** Reviewed `scripts/install.py` and `scripts/one_click.py`; both only read `requirements.txt` and leave `README.md` untouched, so no automated edits occur.
+- **Alternatives:** Run setup scripts before editing in case they mutate these files.
+- **Trade-offs:** Future changes to setup scripts could introduce file mutations requiring re-evaluation.
+- **Scope:** `scripts/install.py`, `scripts/one_click.py`.
+- **Impact:** Manual edits to `requirements.txt` and `README.md` remain single-source of truth.
+- **TTL / Review:** Revisit if setup scripts gain write steps.
+- **Status:** active
+- **Links:** goal centralized-docs
+
