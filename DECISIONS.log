@@ -474,3 +474,15 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit if the project becomes an installable package.
 - **Status:** active
 - **Links:** n/a
+
+### [2025-09-06] admin-input-field
+
+- **Context:** The admin UI sent `{text,...}` to `/v1/audio/speech`, but the API expects an `input` field, leading to HTTP 400 responses.
+- **Decision:** Send `{input,...}` in the request body and rename the textarea `id`/`name` to `input` to mirror the API.
+- **Alternatives:** Adjust the API to accept `text` or handle both fields.
+- **Trade-offs:** Updating the UI avoids expanding server input validation while touching only client code.
+- **Scope:** `Morpheus_Client/admin/index.html`.
+- **Impact:** Admin submissions now conform to the API and generate audio instead of 400 errors.
+- **TTL / Review:** Revisit if the speech endpoint schema changes.
+- **Status:** active
+- **Links:** n/a
