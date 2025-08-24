@@ -70,8 +70,8 @@ def detect_gpu() -> str | None:
     return None
 
 
-def install_torch(gpu: str | None) -> None:
-    cmd = [sys.executable, "-m", "pip", "install", "torch"]
+def install_torch(python: Path, gpu: str | None) -> None:
+    cmd = [str(python), "-m", "pip", "install", "torch"]
     if gpu == "cuda":
         cmd += ["--extra-index-url", "https://download.pytorch.org/whl/cu124"]
     elif gpu == "rocm":
@@ -80,7 +80,7 @@ def install_torch(gpu: str | None) -> None:
     if gpu is not None:
         subprocess.check_call(
             [
-                sys.executable,
+                str(python),
                 "-m",
                 "pip",
                 "install",
@@ -90,8 +90,8 @@ def install_torch(gpu: str | None) -> None:
         )
 
 
-def install_llama_cpp(gpu: str | None) -> None:
-    cmd = [sys.executable, "-m", "pip", "install", "llama-cpp-python"]
+def install_llama_cpp(python: Path, gpu: str | None) -> None:
+    cmd = [str(python), "-m", "pip", "install", "llama-cpp-python"]
     if gpu == "cuda":
         cmd += [
             "--extra-index-url",
@@ -104,22 +104,6 @@ def install_llama_cpp(gpu: str | None) -> None:
         ]
     subprocess.check_call(cmd)
 
-
-def install_requirements(req_file: Path) -> None:
-    print(f"Installing dependencies from {req_file}")
-    pkgs: list[str] = []
-    with req_file.open() as fh:
-        for line in fh:
-            line = line.strip()
-            if not line or line.startswith("#") or line.startswith("torch"):
-                continue
-            pkgs.append(line)
-    if pkgs:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", *pkgs])
-    gpu = detect_gpu()
-    install_torch(gpu)
-    install_llama_cpp(gpu)
-
 def ensure_venv() -> Path:
     venv_dir = Path(".venv")
     if not venv_dir.exists():
@@ -130,7 +114,18 @@ def ensure_venv() -> Path:
 
 def install_requirements(python: Path, req_file: Path) -> None:
     print(f"Installing dependencies from {req_file}")
-    subprocess.check_call([str(python), "-m", "pip", "install", "-r", str(req_file)])
+    pkgs: list[str] = []
+    with req_file.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("torch"):
+                continue
+            pkgs.append(line)
+    if pkgs:
+        subprocess.check_call([str(python), "-m", "pip", "install", *pkgs])
+    gpu = detect_gpu()
+    install_torch(python, gpu)
+    install_llama_cpp(python, gpu)
 
 
 def main() -> None:

@@ -23,17 +23,21 @@ def test_detect_gpu_rocm(monkeypatch):
 def test_install_torch_cuda(monkeypatch):
     calls = []
     monkeypatch.setattr(one_click.subprocess, "check_call", lambda cmd: calls.append(cmd))
-    one_click.install_torch("cuda")
+    python = Path("/tmp/python")
+    one_click.install_torch(python, "cuda")
+    assert calls[0][0] == str(python)
     assert calls[0][-2:] == ["--extra-index-url", "https://download.pytorch.org/whl/cu124"]
+    assert calls[1][0] == str(python)
     assert calls[1][4:] == ["bitsandbytes", "flash-attn"]
 
 
 def test_install_llama_cpp_cpu(monkeypatch):
     calls = []
     monkeypatch.setattr(one_click.subprocess, "check_call", lambda cmd: calls.append(cmd))
-    one_click.install_llama_cpp(None)
+    python = Path("/tmp/python")
+    one_click.install_llama_cpp(python, None)
     assert calls[0] == [
-        one_click.sys.executable,
+        str(python),
         "-m",
         "pip",
         "install",
@@ -76,4 +80,4 @@ def test_install_requirements_uses_given_python(tmp_path, monkeypatch):
     monkeypatch.setattr(one_click.subprocess, "check_call", fake_call)
     python = tmp_path / "custom" / "python"
     one_click.install_requirements(python, req)
-    assert calls[0][0] == str(python)
+    assert all(c[0] == str(python) for c in calls)
