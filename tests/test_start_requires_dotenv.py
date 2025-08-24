@@ -17,4 +17,6 @@ def test_start_errors_when_dotenv_missing(monkeypatch):
     sys.modules.pop("scripts.start", None)
     with pytest.raises(SystemExit) as exc:
         importlib.import_module("scripts.start")
-    assert "python-dotenv is required" in str(exc.value)
+    msg = str(exc.value)
+    assert "pip install python-dotenv" in msg
+    assert exc.value.__cause__ is None

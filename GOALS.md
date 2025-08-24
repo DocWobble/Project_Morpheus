@@ -207,6 +207,18 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** [2025-09-30] orpheus-cpp-required
 - **Notes:** build step may take several minutes
 
+### Capability: dotenv-startup-check
+
+- **Purpose:** Exit early with guidance when `python-dotenv` is missing.
+- **Scope:** `scripts/start.py`.
+- **Shape:** Importing the start script without `python-dotenv` raises a descriptive `SystemExit` message.
+- **Compatibility:** additive; start script aborts before configuration.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** `tests/test_start_requires_dotenv.py`
+- **Linked Decisions:** [2025-08-24] start-dep-checks
+- **Notes:** none
+
 ### Capability: transcript-history
 
 - **Purpose:** Retain utterance text for replay and monitoring.
