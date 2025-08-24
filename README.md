@@ -37,10 +37,20 @@ Play `output.wav` with any media player.
 
 ```bash
 python scripts/one_click.py
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 python scripts/start.py
 ```
 
-`one_click.py` downloads Miniforge if needed, creates a virtual environment and installs all requirements.
+`one_click.py`:
+
+- Downloads Miniforge if needed
+- Creates a `.venv` virtual environment
+- Installs dependencies from `requirements.txt`
+
+You still need to:
+
+- Install GPU-specific PyTorch and accelerator wheels for your hardware
+- Activate the environment as shown above before starting the server
 
 The admin dashboard is served at http://localhost:5005/admin.
 

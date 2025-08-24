@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-08-24] one-click-docs
+
+- **Context:** Users were unclear about what `scripts/one_click.py` automates and which setup steps remain manual.
+- **Decision:** Document that the script downloads Miniforge, creates `.venv`, installs `requirements.txt`, and note that GPU-specific wheels and environment activation are still manual.
+- **Alternatives:** Leave the brief description and assume prior knowledge.
+- **Trade-offs:** Slightly longer README section for clearer setup expectations.
+- **Scope:** `README.md`, `DECISIONS.log`.
+- **Impact:** Clarifies setup flow and reduces onboarding friction.
+- **TTL / Review:** Revisit if `one_click.py` gains hardware-specific installation or auto-activation.
+- **Status:** ACTIVE
+- **Links:** n/a
+
 ### [2025-08-24] orpheus-local-none-stop
 
 - **Context:** `_stream_from_model` assumed the underlying iterator raised `StopIteration`; some `orpheus_cpp` iterators instead returned `None`, causing `TypeError` during unpacking.
