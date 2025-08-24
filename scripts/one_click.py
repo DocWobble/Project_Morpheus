@@ -10,8 +10,13 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
+
 def miniforge_installed() -> bool:
-    return shutil.which("conda") is not None
+    """Return True if a Miniforge installation is detected."""
+    if shutil.which("conda") is not None:
+        return True
+    home = Path.home()
+    return any((home / name).exists() for name in ("miniforge3", "Miniforge3"))
 
 def detect_platform() -> tuple[str, str]:
     system = platform.system().lower()
@@ -34,6 +39,10 @@ def detect_platform() -> tuple[str, str]:
 
 def install_miniforge(os_name: str, arch: str) -> None:
     ext = "exe" if os_name == "Windows" else "sh"
+    target = Path.home() / ("Miniforge3" if os_name == "Windows" else "miniforge3")
+    if target.exists():
+        print(f"Miniforge already installed at {target}")
+        return
     url = (
         "https://github.com/conda-forge/miniforge/releases/latest/download/"
         f"Miniforge3-{os_name}-{arch}.{ext}"
@@ -43,7 +52,6 @@ def install_miniforge(os_name: str, arch: str) -> None:
         installer = Path(tmp) / f"miniforge.{ext}"
         urllib.request.urlretrieve(url, installer)
         if os_name == "Windows":
-            target = Path.home() / "miniforge3"
             subprocess.check_call([str(installer), "/S", f"/D={target}"])
         else:
             installer.chmod(0o755)
