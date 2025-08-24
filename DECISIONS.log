@@ -550,6 +550,7 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal gpu-aware-one-click
 
+
 ### [2025-09-25] one-click-install-consolidation
 
 - **Context:** The one-click script defined two `install_requirements` functions, leaving GPU-aware installs unused and outside the virtual environment.
@@ -561,3 +562,16 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Review when dependency management changes.
 - **Status:** active
 - **Links:** goal gpu-aware-one-click, goal auto-venv-setup
+
+### [2025-08-24] start-dep-checks
+
+- **Context:** The start script raised raw tracebacks when optional dependencies like `python-dotenv` were missing.
+- **Decision:** Wrap imports of `python-dotenv` and `orpheus_cpp` with try/except blocks that exit with guidance to install missing packages.
+- **Alternatives:** Allow ImportErrors to propagate.
+- **Trade-offs:** Slightly more startup code; messages may become outdated.
+- **Scope:** `scripts/start.py`, `tests/test_start_requires_dotenv.py`, `tests/test_start_requires_orpheus_cpp.py`.
+- **Impact:** Users receive clear installation guidance instead of stack traces when dependencies are absent.
+- **TTL / Review:** Review when dependency handling changes.
+- **Status:** active
+- **Links:** n/a
+
