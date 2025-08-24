@@ -254,3 +254,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Scenes:** `tests/test_config_generation_params.py::test_generation_param_round_trip`
 - **Linked Decisions:** [2025-10-30] tunable-inference-params
 - **Notes:** none
+
+### Capability: centralized-docs
+
+- **Purpose:** Maintain a single top-level README and requirements file for clearer setup.
+- **Scope:** `README.md`, `requirements.txt`, repository docs.
+- **Shape:** Only one `README.md` and `requirements.txt` exist at the repository root; subdirectory variants are archived.
+- **Compatibility:** n/a
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** n/a
+- **Linked Decisions:** consolidate-readmes
+- **Notes:** documents text-stream output and client/UI startup.
