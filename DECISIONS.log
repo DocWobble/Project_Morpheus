@@ -550,6 +550,19 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **Status:** active
 - **Links:** goal gpu-aware-one-click
 
+
+### [2025-09-25] one-click-install-consolidation
+
+- **Context:** The one-click script defined two `install_requirements` functions, leaving GPU-aware installs unused and outside the virtual environment.
+- **Decision:** Merge installation logic into a single `install_requirements` that uses the provided Python executable and passes it to GPU package installers.
+- **Alternatives:** Keep both functions and rely on `sys.executable` for GPU installs.
+- **Trade-offs:** Slightly more parameters, but ensures all dependencies install into the correct environment.
+- **Scope:** `scripts/one_click.py`, `tests/test_one_click.py`.
+- **Impact:** One-click setup installs standard and GPU-specific dependencies in the virtual environment.
+- **TTL / Review:** Review when dependency management changes.
+- **Status:** active
+- **Links:** goal gpu-aware-one-click, goal auto-venv-setup
+
 ### [2025-08-24] start-dep-checks
 
 - **Context:** The start script raised raw tracebacks when optional dependencies like `python-dotenv` were missing.
@@ -561,3 +574,4 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Review when dependency handling changes.
 - **Status:** active
 - **Links:** n/a
+
