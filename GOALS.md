@@ -267,3 +267,15 @@ _(Append new capabilities below using the format above. Keep the list curated; c
 - **Linked Decisions:** consolidate-readmes
 - **Notes:** documents text-stream output and client/UI startup.
 - **Notes:** updated 2025-08-24 to describe WAV streaming endpoints.
+
+### Capability: idempotent-miniforge-setup
+
+- **Purpose:** Avoid reinstalling Miniforge when running the environment setup multiple times.
+- **Scope:** `scripts/one_click.py`.
+- **Shape:** Presence of `miniforge3` directory or `conda` binary results in a no-op.
+- **Compatibility:** no flags; existing installations remain untouched.
+- **Status:** active
+- **Owner:** repo owner
+- **Linked Scenes:** tests/test_one_click.py::test_miniforge_detection_and_skip
+- **Linked Decisions:** [2025-08-24] miniforge-idempotent
+- **Notes:** re-evaluate if update-through-installer is required

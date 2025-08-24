@@ -19,6 +19,18 @@
 
 _(New entries go on top. Keep each under ~20 lines.)_
 
+### [2025-08-24] miniforge-idempotent
+
+- **Context:** `scripts/one_click.py` attempted a fresh Miniforge install even when the target directory already existed.
+- **Decision:** Detect existing `miniforge3` directories and skip installer execution to make setup idempotent.
+- **Alternatives:** Always run the installer with an update flag; rely solely on `conda` being on `PATH`.
+- **Trade-offs:** Skipping avoids unintended reinstalls but forgoes automatic updates.
+- **Scope:** `scripts/one_click.py`.
+- **Impact:** Re-running the setup script exits cleanly when Miniforge is present.
+- **TTL / Review:** Revisit if Miniforge offers a cross-platform update mode.
+- **Status:** ACTIVE
+- **Links:** goal idempotent-miniforge-setup
+
 ### [2025-11-07] orpheus-cpp-docs
 
 - **Context:** Installation instructions duplicated manual `orpheus-cpp` steps despite the dependency being pinned in `requirements.txt`.
