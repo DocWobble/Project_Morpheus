@@ -427,3 +427,27 @@ _(New entries go on top. Keep each under ~20 lines.)_
 - **TTL / Review:** Revisit if the bootstrap process changes or a `bootstrap.sh` replaces `one_click.py`.
 - **Status:** active
 - **Links:** goal centralized-docs
+
+### [2025-08-24] fresh-readme-setup
+
+- **Context:** The existing README was removed; users needed a concise guide to install dependencies and run the TTS service.
+- **Decision:** Recreate the README with manual and one-click install paths, hardware-specific Torch guidance, and a CLI verification step.
+- **Alternatives:** Incrementally patch the previous README.
+- **Trade-offs:** A fresh document must be kept in sync with setup scripts.
+- **Scope:** `README.md`, `CHANGES.md`, `DECISIONS.log`.
+- **Impact:** Users can follow a single set of instructions to launch Morpheus and verify audio streaming.
+- **TTL / Review:** Revisit when setup flows change or text streaming replaces audio.
+- **Status:** active
+- **Links:** goal centralized-docs
+
+### [2025-08-24] start-path-guard
+
+- **Context:** Running `scripts/start.py` from outside the project root raised `ModuleNotFoundError: No module named 'Morpheus_Client'`.
+- **Decision:** Prepend the repository root to `sys.path` at startup and note the root requirement in the README.
+- **Alternatives:** Require users to run the script from the project root or install the package separately.
+- **Trade-offs:** Adds a few lines of bootstrap code but prevents common import errors.
+- **Scope:** `scripts/start.py`, `README.md`.
+- **Impact:** `scripts/start.py` works from any directory and documentation warns users to ensure the repo root is on `PYTHONPATH`.
+- **TTL / Review:** Revisit if the project becomes an installable package.
+- **Status:** active
+- **Links:** goal centralized-docs

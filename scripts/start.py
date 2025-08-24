@@ -1,6 +1,14 @@
 import os
+import sys
 import threading
 import webbrowser
+from pathlib import Path
+
+# Ensure repository root on sys.path so `Morpheus_Client` is importable
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from dotenv import load_dotenv
 from Morpheus_Client.config import ensure_env_file_exists
 from Morpheus_Client import start_server
